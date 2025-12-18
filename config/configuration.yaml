@@ -1,0 +1,45 @@
+# Home Assistant Configuration
+# https://www.home-assistant.io/docs/configuration/
+
+# Loads default set of integrations. Do not remove.
+default_config:
+
+# Load frontend themes from the themes folder
+frontend:
+  themes: !include_dir_merged_named themes
+
+# Text to speech
+tts:
+  - platform: alexa
+
+# Input helpers
+input_datetime: !include input_datetime.yaml
+
+# Automations
+automation: !include automations.yaml
+
+# SimpliSafe Integration
+# Configure via UI: Settings → Devices & Services → Add Integration → SimpliSafe
+# Or add manually with credentials in secrets.yaml:
+# simplisafe:
+#   username: !secret simplisafe_username
+#   password: !secret simplisafe_password
+
+# Alexa Media Player (via Nabu Casa Cloud)
+# Automatically discovered when Nabu Casa Cloud is configured
+# Configure via UI: Settings → Devices & Services → Nabu Casa Cloud
+
+# Example: If you need to manually configure Alexa Media Player
+# alexa_media:
+#   accounts:
+#     - email: !secret alexa_email
+#       password: !secret alexa_password
+
+# Logger for debugging
+logger:
+  default: info
+  logs:
+    homeassistant.components.automation: debug
+    homeassistant.components.simplisafe: info
+    homeassistant.components.alexa_media: info
+

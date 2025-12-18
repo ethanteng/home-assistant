@@ -1,0 +1,27 @@
+# Home Assistant
+config/.storage/
+config/home-assistant.log
+config/home-assistant_v2.db
+config/home-assistant_v2.db-shm
+config/home-assistant_v2.db-wal
+config/secrets.yaml
+config/.cloud/
+config/.storage/
+
+# Docker
+.docker/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Backups
+*.tar.gz
+backup-*

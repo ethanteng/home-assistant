@@ -1,0 +1,8 @@
+# Helper input_datetime for tracking last motion announcement
+# Used for cooldown logic in automation
+
+last_motion_announcement:
+  name: Last Motion Announcement
+  has_date: true
+  has_time: true
+

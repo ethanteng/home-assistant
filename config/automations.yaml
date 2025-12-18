@@ -1,0 +1,127 @@
+# SimpliSafe Motion Detection → Alexa Announcement Automation
+# 
+# This automation triggers when SimpliSafe cameras detect motion
+# while the alarm system is armed (away or home mode).
+#
+# Requirements:
+# - SimpliSafe integration configured
+# - Nabu Casa Cloud configured (for Alexa integration)
+# - Alexa devices discovered as media_player entities
+#
+# Customization:
+# - Update camera_motion_entities list with your actual SimpliSafe camera motion entities
+# - Update alexa_devices list with your actual Alexa media_player entity IDs
+# - Adjust cooldown_seconds to change minimum time between announcements
+# - Modify announcement_message template to customize the spoken alert
+
+- id: simplisafe_motion_alexa_alert
+  alias: "SimpliSafe Motion → Alexa Alert"
+  description: "Announce motion detection on Alexa when SimpliSafe alarm is armed"
+  mode: single
+  trigger:
+    - platform: state
+      entity_id:
+        # TODO: Replace with your actual SimpliSafe camera motion sensor entities
+        # Find these in Developer Tools → States (look for binary_sensor.*motion*)
+        # Example: binary_sensor.front_door_camera_motion
+        - binary_sensor.front_door_camera_motion
+        - binary_sensor.back_door_camera_motion
+        # Add more camera motion sensors as needed
+      to: "on"
+      for:
+        seconds: 1
+  condition:
+    - condition: or
+      conditions:
+        # Only trigger when alarm is armed
+        - condition: state
+          entity_id: alarm_control_panel.simplisafe  # Update with your actual alarm entity ID
+          state: "armed_away"
+        - condition: state
+          entity_id: alarm_control_panel.simplisafe  # Update with your actual alarm entity ID
+          state: "armed_home"
+    # Cooldown check: prevent spam from rapid motion events
+    - condition: template
+      value_template: >
+        {% set last_trigger = states('input_datetime.last_motion_announcement') | as_datetime %}
+        {% if last_trigger == None %}
+          True
+        {% else %}
+          {{ (now() - last_trigger).total_seconds() >= 30 }}
+        {% endif %}
+  action:
+    # Update timestamp for cooldown tracking
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.last_motion_announcement
+      data:
+        datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+    
+    # Extract camera location from entity name
+    - variables:
+        camera_location: >
+          {% set entity_name = trigger.entity_id %}
+          {% if 'front' in entity_name %}
+            the front door
+          {% elif 'back' in entity_name %}
+            the back door
+          {% elif 'side' in entity_name %}
+            the side door
+          {% elif 'garage' in entity_name %}
+            the garage
+          {% else %}
+            {{ states[entity_name].attributes.friendly_name | default('a camera') }}
+          {% endif %}
+        announcement_message: "Alert. Motion detected at {{ camera_location }}."
+    
+    # Announce on all configured Alexa devices
+    - parallel:
+        # TODO: Replace with your actual Alexa media_player entity IDs
+        # Find these in Developer Tools → States (look for media_player.*alexa* or media_player.*echo*)
+        # Example: media_player.kitchen_echo
+        - service: media_player.volume_set
+          target:
+            entity_id:
+              - media_player.kitchen_echo  # Update with your device
+              - media_player.living_room_echo  # Update with your device
+              # Add more Alexa devices as needed
+          data:
+            volume_level: 0.7  # 70% volume for announcements
+          continue_on_error: true
+        
+        - delay:
+            seconds: 1
+        
+        - service: tts.alexa_say
+          target:
+            entity_id:
+              - media_player.kitchen_echo  # Update with your device
+              - media_player.living_room_echo  # Update with your device
+              # Add more Alexa devices as needed
+          data:
+            message: "{{ announcement_message }}"
+            cache: false
+          continue_on_error: true
+        
+        - delay:
+            seconds: 3  # Wait for announcement to complete
+        
+        # Restore original volumes (optional - comment out if you want to keep volume at 70%)
+        # Note: This requires storing original volumes, which adds complexity
+        # For simplicity, we'll leave volume at 70% after announcement
+        # Uncomment and customize if you need volume restoration:
+        # - service: media_player.volume_set
+        #   target:
+        #     entity_id:
+        #       - media_player.kitchen_echo
+        #       - media_player.living_room_echo
+        #   data:
+        #     volume_level: "{{ original_volume }}"
+        #   continue_on_error: true
+    
+    # Log the event
+    - service: system_log.write
+      data:
+        message: "SimpliSafe motion alert: {{ announcement_message }}"
+        level: info
+
