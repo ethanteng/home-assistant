@@ -335,21 +335,409 @@ docker-compose exec homeassistant python -m homeassistant --script check_config
 
 ## Common Failure Modes
 
-### Mode 1: Network Issues
-- **Symptom**: Integrations disconnect frequently
-- **Solution**: Check network stability, firewall rules, DNS
+### Mode 1: Tailscale is Down
 
-### Mode 2: API Rate Limiting
-- **Symptom**: SimpliSafe integration errors, "rate limit" messages
-- **Solution**: Reduce automation frequency, check SimpliSafe API limits
+**Symptoms**:
+- Cannot access Home Assistant UI via Tailscale IP
+- `tailscale status` shows disconnected
+- socat container logs show "Tailscale IP not found"
 
-### Mode 3: Entity ID Changes
-- **Symptom**: Automation stops working after Home Assistant update
-- **Solution**: Verify entity IDs haven't changed, update automation
+**Impact**:
+- Home Assistant UI inaccessible remotely
+- Home Assistant continues running and processing automations
+- Integrations (SimpliSafe, Nabu Casa) continue working
+- Local access via SSH still works
 
-### Mode 4: Service Unavailable
-- **Symptom**: TTS or media_player services fail
-- **Solution**: Check service availability, restart Home Assistant
+**Solutions**:
+```bash
+# Check Tailscale service status
+sudo systemctl status tailscaled
+
+# Restart Tailscale
+sudo systemctl restart tailscaled
+
+# Re-authenticate if needed
+sudo tailscale up
+
+# Verify connection
+tailscale status
+
+# Restart socat proxy after Tailscale is back
+docker-compose restart tailscale-proxy
+```
+
+**Prevention**:
+- Monitor Tailscale service: `sudo systemctl enable tailscaled`
+- Set up Tailscale service monitoring
+- Consider Tailscale key rotation policies
+
+**What Survives**:
+- ✅ Home Assistant container continues running
+- ✅ All automations continue executing
+- ✅ SimpliSafe integration continues working
+- ✅ Local system operations unaffected
+
+---
+
+### Mode 2: Tailscale IP Changed
+
+**Symptoms**:
+- Previously working Tailscale URL stops working
+- Browser shows "Connection refused"
+- New Tailscale IP assigned
+
+**Impact**:
+- Temporary loss of remote access
+- Home Assistant continues running normally
+
+**Solutions**:
+```bash
+# Get new Tailscale IP
+tailscale ip -4
+
+# Restart socat proxy to detect new IP
+docker-compose restart tailscale-proxy
+
+# Verify new IP is being used
+docker logs tailscale-proxy | grep "Tailscale IP"
+
+# Update bookmarks/access URLs
+```
+
+**Prevention**:
+- Use Tailscale MagicDNS: `tailscale set --accept-dns=true`
+- Access via hostname: `http://boinc-mini:8123` (doesn't change)
+- Monitor Tailscale IP changes
+
+**What Survives**:
+- ✅ All Home Assistant functionality
+- ✅ All automations and integrations
+- ✅ Just need to update access URL
+
+---
+
+### Mode 3: socat Proxy Container Fails
+
+**Symptoms**:
+- `docker ps` shows `tailscale-proxy` as exited
+- Cannot access Home Assistant via Tailscale IP
+- Home Assistant logs show no errors
+
+**Impact**:
+- Complete loss of remote access via Tailscale
+- Home Assistant continues running (accessible via localhost only)
+
+**Solutions**:
+```bash
+# Check container logs
+docker logs tailscale-proxy
+
+# Verify Tailscale interface exists
+ip addr show tailscale0
+
+# Restart container
+docker-compose restart tailscale-proxy
+
+# If persistent, check Tailscale status
+tailscale status
+
+# Full restart if needed
+docker-compose down
+docker-compose up -d
+```
+
+**Prevention**:
+- Monitor container health: `docker ps`
+- Set up container restart monitoring
+- Check logs regularly: `docker logs tailscale-proxy`
+
+**What Survives**:
+- ✅ Home Assistant container and all functionality
+- ✅ All automations continue working
+- ✅ Just remote access is affected
+
+---
+
+### Mode 4: Nabu Casa Cloud Disconnected
+
+**Symptoms**:
+- Alexa announcements stop working
+- Automation triggers but no audio
+- Nabu Casa integration shows "Disconnected" in UI
+
+**Impact**:
+- Motion alerts trigger but no Alexa announcements
+- SimpliSafe integration continues working
+- Other automations unaffected
+
+**Solutions**:
+```bash
+# Check internet connectivity from container
+docker-compose exec homeassistant ping -c 3 cloud.nabucasa.com
+
+# Check Nabu Casa status in Home Assistant UI
+# Settings → Devices & Services → Nabu Casa Cloud
+
+# Restart Home Assistant
+docker-compose restart homeassistant
+
+# Verify subscription status at nabucasa.com
+```
+
+**Prevention**:
+- Monitor Nabu Casa connection status
+- Set up alerts for integration disconnections
+- Ensure stable internet connection
+
+**What Survives**:
+- ✅ All Home Assistant functionality
+- ✅ SimpliSafe integration and automations
+- ✅ Motion detection continues
+- ❌ Only Alexa announcements fail
+
+---
+
+### Mode 5: SimpliSafe Integration Disconnected
+
+**Symptoms**:
+- Motion sensors stop updating
+- Automation doesn't trigger
+- SimpliSafe integration shows error in UI
+
+**Impact**:
+- Motion detection stops working
+- No alerts triggered
+- Alexa announcements won't fire (no trigger)
+
+**Solutions**:
+```bash
+# Check SimpliSafe logs
+docker-compose logs homeassistant | grep -i simplisafe
+
+# Verify credentials in secrets.yaml
+cat config/secrets.yaml | grep simplisafe
+
+# Restart Home Assistant
+docker-compose restart homeassistant
+
+# Re-authenticate SimpliSafe integration via UI
+# Settings → Devices & Services → SimpliSafe → Configure
+```
+
+**Prevention**:
+- Monitor SimpliSafe integration status
+- Set up alerts for integration failures
+- Keep SimpliSafe credentials updated
+
+**What Survives**:
+- ✅ Home Assistant continues running
+- ✅ Other automations continue
+- ✅ Alexa integration continues working
+- ❌ Only SimpliSafe motion detection fails
+
+---
+
+### Mode 6: Server Reboot
+
+**Symptoms**:
+- All services restart automatically
+- Tailscale reconnects
+- Containers restart
+
+**Impact**:
+- Brief downtime during reboot
+- Services auto-restart (if configured correctly)
+
+**Solutions**:
+```bash
+# Verify containers auto-started
+docker ps
+
+# Check Tailscale reconnected
+tailscale status
+
+# Verify socat proxy started
+docker logs tailscale-proxy
+
+# Check Home Assistant started
+docker logs homeassistant | tail -20
+```
+
+**What Survives**:
+- ✅ Docker containers auto-restart (`restart: unless-stopped`)
+- ✅ Tailscale auto-connects (systemd service)
+- ✅ All configurations persist
+- ⚠️ Brief downtime during reboot (~1-2 minutes)
+
+**Prevention**:
+- Ensure `restart: unless-stopped` in docker-compose.yml
+- Enable Tailscale service: `sudo systemctl enable tailscaled`
+- Test reboot recovery: `sudo reboot`
+
+---
+
+### Mode 7: Motion Detected But No Announcement
+
+**Symptoms**:
+- SimpliSafe motion sensor triggers
+- Automation trace shows execution
+- No audio from Alexa devices
+
+**Diagnostic Steps**:
+```bash
+# 1. Check automation trace in UI
+# Settings → Automations & Scenes → SimpliSafe Motion → Alexa Alert → Trace
+
+# 2. Verify alarm is armed
+# Developer Tools → States → alarm_control_panel.simplisafe
+
+# 3. Test TTS service directly
+# Developer Tools → Services → tts.alexa_say
+
+# 4. Check Alexa device states
+# Developer Tools → States → media_player.* (your devices)
+
+# 5. Check logs
+docker-compose logs homeassistant | grep -i "alexa\|tts\|motion"
+```
+
+**Common Causes**:
+1. **Alarm not armed**: Automation condition fails
+2. **Cooldown active**: Recent announcement blocks new one
+3. **Alexa device offline**: Device unavailable
+4. **Nabu Casa disconnected**: Cloud connection lost
+5. **Volume too low**: Device muted or volume 0
+6. **Entity IDs incorrect**: Wrong device IDs in automation
+
+**Solutions**:
+- Verify alarm state: `armed_away` or `armed_home`
+- Check cooldown: Wait 30+ seconds between tests
+- Verify Alexa devices online in Home Assistant
+- Test TTS service directly
+- Check automation trace for errors
+- Verify entity IDs match actual devices
+
+**What Survives**:
+- ✅ Motion detection continues
+- ✅ Automation continues triggering
+- ✅ All other functionality works
+- ❌ Only announcement fails (diagnosable)
+
+---
+
+### Mode 8: Network Issues
+
+**Symptoms**:
+- Integrations disconnect frequently
+- Intermittent connection errors
+- Timeouts in logs
+
+**Impact**:
+- Unreliable automation execution
+- Missed motion alerts
+- Integration failures
+
+**Solutions**:
+```bash
+# Check network connectivity
+ping -c 3 8.8.8.8
+
+# Check DNS resolution
+nslookup cloud.nabucasa.com
+
+# Check Tailscale connectivity
+tailscale ping <other-device>
+
+# Restart network services if needed
+sudo systemctl restart networking
+sudo systemctl restart tailscaled
+```
+
+**Prevention**:
+- Monitor network stability
+- Use reliable DNS servers
+- Ensure stable internet connection
+- Monitor integration status
+
+---
+
+### Mode 9: API Rate Limiting
+
+**Symptoms**:
+- SimpliSafe integration errors
+- "Rate limit exceeded" messages in logs
+- Integration stops updating
+
+**Impact**:
+- Motion sensors stop updating
+- Automation triggers fail
+
+**Solutions**:
+```bash
+# Check SimpliSafe logs
+docker-compose logs homeassistant | grep -i "rate limit\|simplisafe"
+
+# Reduce automation frequency (increase cooldown)
+# Edit config/automations.yaml - increase cooldown_seconds
+
+# Restart Home Assistant
+docker-compose restart homeassistant
+```
+
+**Prevention**:
+- Use appropriate cooldown periods (30+ seconds)
+- Monitor API usage
+- Avoid rapid polling
+
+---
+
+### Mode 10: Entity ID Changes
+
+**Symptoms**:
+- Automation stops working after Home Assistant update
+- "Entity not found" errors
+- Motion sensors not triggering
+
+**Impact**:
+- Automation fails silently
+- No alerts triggered
+
+**Solutions**:
+```bash
+# Find current entity IDs
+# Developer Tools → States → Search for "simplisafe" or "motion"
+
+# Update automation YAML with correct IDs
+nano config/automations.yaml
+
+# Restart Home Assistant
+docker-compose restart homeassistant
+```
+
+**Prevention**:
+- Document entity IDs
+- Use friendly names where possible
+- Test after Home Assistant updates
+- Monitor automation traces
+
+---
+
+## Failure Mode Summary
+
+| Failure Mode | Home Assistant | Automations | SimpliSafe | Alexa | Remote Access |
+|--------------|----------------|-------------|------------|-------|---------------|
+| Tailscale Down | ✅ Running | ✅ Working | ✅ Working | ✅ Working | ❌ Blocked |
+| Tailscale IP Changed | ✅ Running | ✅ Working | ✅ Working | ✅ Working | ⚠️ URL Update |
+| socat Proxy Fails | ✅ Running | ✅ Working | ✅ Working | ✅ Working | ❌ Blocked |
+| Nabu Casa Down | ✅ Running | ✅ Working | ✅ Working | ❌ Failed | ✅ Working |
+| SimpliSafe Down | ✅ Running | ⚠️ No Triggers | ❌ Failed | ✅ Working | ✅ Working |
+| Server Reboot | ⚠️ Restarting | ⚠️ Brief Pause | ⚠️ Reconnecting | ⚠️ Reconnecting | ⚠️ Brief Pause |
+| Motion/No Announce | ✅ Running | ✅ Triggering | ✅ Working | ❌ Failed | ✅ Working |
+
+**Legend**:
+- ✅ = Fully functional
+- ⚠️ = Degraded or temporary issue
+- ❌ = Failed or blocked
 
 ## Getting Help
 
@@ -372,4 +760,5 @@ If issues persist:
    - Docker version compatibility
    - Ubuntu version compatibility
    - Resource availability (CPU, memory, disk)
+
 

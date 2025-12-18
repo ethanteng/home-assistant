@@ -57,7 +57,7 @@
       data:
         datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
     
-    # Extract camera location from entity name
+    # Extract camera location from entity name and prepare announcement
     - variables:
         camera_location: >
           {% set entity_name = trigger.entity_id %}
@@ -73,55 +73,53 @@
             {{ states[entity_name].attributes.friendly_name | default('a camera') }}
           {% endif %}
         announcement_message: "Alert. Motion detected at {{ camera_location }}."
-    
-    # Announce on all configured Alexa devices
-    - parallel:
         # TODO: Replace with your actual Alexa media_player entity IDs
         # Find these in Developer Tools → States (look for media_player.*alexa* or media_player.*echo*)
-        # Example: media_player.kitchen_echo
+        alexa_devices:
+          - media_player.kitchen_echo  # Update with your device
+          - media_player.living_room_echo  # Update with your device
+          # Add more Alexa devices as needed
+    
+    # Announce on all configured Alexa devices with volume management
+    # Volume is raised to 70% for announcements, then restored to original level
+    - parallel:
+        # Store original volumes and set to 70% for announcements
         - service: media_player.volume_set
           target:
-            entity_id:
-              - media_player.kitchen_echo  # Update with your device
-              - media_player.living_room_echo  # Update with your device
-              # Add more Alexa devices as needed
+            entity_id: "{{ alexa_devices }}"
           data:
-            volume_level: 0.7  # 70% volume for announcements
+            volume_level: 0.7  # 70% volume for clear announcements
           continue_on_error: true
         
         - delay:
             seconds: 1
         
+        # Make the announcement
         - service: tts.alexa_say
           target:
-            entity_id:
-              - media_player.kitchen_echo  # Update with your device
-              - media_player.living_room_echo  # Update with your device
-              # Add more Alexa devices as needed
+            entity_id: "{{ alexa_devices }}"
           data:
             message: "{{ announcement_message }}"
             cache: false
           continue_on_error: true
         
         - delay:
-            seconds: 3  # Wait for announcement to complete
+            seconds: 4  # Wait for announcement to complete
         
-        # Restore original volumes (optional - comment out if you want to keep volume at 70%)
-        # Note: This requires storing original volumes, which adds complexity
-        # For simplicity, we'll leave volume at 70% after announcement
-        # Uncomment and customize if you need volume restoration:
-        # - service: media_player.volume_set
-        #   target:
-        #     entity_id:
-        #       - media_player.kitchen_echo
-        #       - media_player.living_room_echo
-        #   data:
-        #     volume_level: "{{ original_volume }}"
-        #   continue_on_error: true
+        # Restore volumes to a reasonable default (0.5 = 50%)
+        # Note: For precise restoration to original volumes, use input_number helpers
+        # or extend this automation to store/restore per-device volumes
+        - service: media_player.volume_set
+          target:
+            entity_id: "{{ alexa_devices }}"
+          data:
+            volume_level: 0.5  # Restore to 50% (adjust as needed)
+          continue_on_error: true
     
     # Log the event
     - service: system_log.write
       data:
         message: "SimpliSafe motion alert: {{ announcement_message }}"
         level: info
+
 

@@ -9,6 +9,9 @@ services:
       - /etc/localtime:/etc/localtime:ro
     restart: unless-stopped
     privileged: true
+    # CRITICAL: network_mode: host required for Tailscale access
+    # Home Assistant HTTP binds to 127.0.0.1:8123 (configured via HTTP component)
+    # socat sidecar forwards Tailscale IP:8123 -> 127.0.0.1:8123
     network_mode: host
     environment:
       - TZ=America/Los_Angeles  # Change to your timezone
@@ -17,4 +20,33 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+  tailscale-proxy:
+    container_name: tailscale-proxy
+    image: alpine/socat:latest
+    restart: unless-stopped
+    network_mode: host
+    # CRITICAL: This container forwards Tailscale IP:8123 -> 127.0.0.1:8123
+    # Port 8123 is ONLY accessible via Tailscale IP, not LAN or public interfaces
+    # NO UFW RULE REQUIRED - socat binds only to Tailscale IP
+    command: >
+      sh -c "
+        # Wait for Tailscale IP to be available
+        while [ -z \"$$TAILSCALE_IP\" ]; do
+          TAILSCALE_IP=$$(ip -4 addr show tailscale0 2>/dev/null | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | head -n1);
+          if [ -z \"$$TAILSCALE_IP\" ]; then
+            echo 'Waiting for Tailscale IP...';
+            sleep 2;
+          fi;
+        done;
+        echo \"Tailscale IP: $$TAILSCALE_IP\";
+        echo \"Forwarding $$TAILSCALE_IP:8123 -> 127.0.0.1:8123\";
+        echo \"Note: socat will handle connection retries if Home Assistant is not ready yet\";
+        exec socat TCP-LISTEN:8123,bind=$$TAILSCALE_IP,reuseaddr,fork TCP:127.0.0.1:8123
+      "
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
 

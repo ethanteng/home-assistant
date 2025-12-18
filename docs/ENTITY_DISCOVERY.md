@@ -167,3 +167,4 @@ If names are unclear:
 2. Use friendly names in automation templates
 3. Rename entities in Home Assistant UI if needed
 
+

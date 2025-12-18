@@ -63,13 +63,27 @@ sudo chown -R $USER:$USER config/
 chmod -R 755 config/
 ```
 
-## Step 5: Configure Firewall
+## Step 5: Verify Tailscale Setup
+
+**CRITICAL**: This deployment is configured for **Tailscale-only access**. Port 8123 must NEVER be opened via UFW or exposed to LAN/public interfaces.
 
 ```bash
-# Allow Home Assistant port (8123)
-sudo ufw allow 8123/tcp
-sudo ufw reload
+# Verify Tailscale is installed and running
+tailscale status
+
+# Verify Tailscale IP address
+ip addr show tailscale0
+
+# CRITICAL: Ensure NO UFW rule exists for port 8123
+sudo ufw status | grep 8123
+# This should return nothing - if it shows a rule, remove it:
+# sudo ufw delete allow 8123/tcp
+
+# Verify UFW is enabled (for other services)
+sudo ufw status
 ```
+
+**Security Note**: The docker-compose setup uses a socat sidecar container that binds port 8123 ONLY to the Tailscale IP address. No firewall rule is needed or should be created.
 
 ## Step 6: Start Home Assistant
 
@@ -85,11 +99,24 @@ Home Assistant will start and create initial configuration files. Wait for the s
 
 ## Step 7: Initial Home Assistant Setup
 
-1. Open browser to `http://your-server-ip:8123`
-2. Complete the initial setup wizard:
+1. **Get your Tailscale IP address**:
+   ```bash
+   tailscale ip -4
+   ```
+
+2. **Open browser to your Tailscale IP**: `http://<tailscale-ip>:8123`
+   - Example: `http://100.x.x.x:8123`
+   - **DO NOT** use the LAN IP or public IP - only use Tailscale IP
+
+3. Complete the initial setup wizard:
    - Create admin account
    - Set location
    - Choose integrations (skip for now, we'll add manually)
+
+**Verification**: Confirm Home Assistant is NOT accessible via:
+- LAN IP (should fail/timeout)
+- Public IP (should fail/timeout)
+- Only Tailscale IP should work
 
 ## Step 8: Configure SimpliSafe Integration
 
@@ -195,15 +222,22 @@ sudo systemctl start home-assistant.service
 
 ## Verification Checklist
 
-- [ ] Docker container is running: `docker ps | grep homeassistant`
-- [ ] Home Assistant web UI is accessible
+- [ ] Docker containers are running: `docker ps | grep -E "homeassistant|tailscale-proxy"`
+- [ ] Tailscale is running: `tailscale status`
+- [ ] NO UFW rule for 8123: `sudo ufw status | grep 8123` (should return nothing)
+- [ ] Home Assistant web UI is accessible via Tailscale IP only
+- [ ] LAN access is blocked (test: `curl http://<lan-ip>:8123` should fail)
 - [ ] SimpliSafe integration is configured and entities are visible
 - [ ] Nabu Casa Cloud is configured and Alexa devices are visible
 - [ ] Automation is enabled and configured correctly
 - [ ] Automation triggers successfully (test with manual trigger)
 
+**See [VERIFICATION.md](./VERIFICATION.md) for complete verification steps.**
+
 ## Next Steps
 
+- Read [TAILSCALE_ACCESS.md](./TAILSCALE_ACCESS.md) for Tailscale access details
+- Read [VERIFICATION.md](./VERIFICATION.md) for complete verification checklist
 - Read [ENTITY_DISCOVERY.md](./ENTITY_DISCOVERY.md) to find your entity IDs
 - Read [TESTING.md](./TESTING.md) to test the automation
 - Read [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) if you encounter issues
@@ -222,4 +256,5 @@ docker-compose up -d
 # Backup entire config directory
 tar -czf home-assistant-backup-$(date +%Y%m%d).tar.gz config/
 ```
+
 

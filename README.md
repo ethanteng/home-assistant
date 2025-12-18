@@ -52,13 +52,18 @@ This system provides event-driven security alerts by:
    ```
 
 4. **Complete setup**
-   - Open `http://your-server-ip:8123`
+   - Get Tailscale IP: `tailscale ip -4`
+   - Open `http://<tailscale-ip>:8123` (NOT LAN IP)
    - Complete initial setup wizard
    - Configure SimpliSafe integration
    - Configure Nabu Casa Cloud
    - Update `config/automations.yaml` with your entity IDs
 
+**CRITICAL**: Access Home Assistant ONLY via Tailscale IP. Do NOT use LAN IP or public IP.
+
 See [docs/SETUP.md](./docs/SETUP.md) for detailed instructions.
+See [docs/TAILSCALE_ACCESS.md](./docs/TAILSCALE_ACCESS.md) for Tailscale access details.
+See [docs/VERIFICATION.md](./docs/VERIFICATION.md) for verification checklist.
 
 ## Project Structure
 
@@ -109,6 +114,8 @@ See [docs/TESTING.md](./docs/TESTING.md) for comprehensive testing guide.
 ## Documentation
 
 - **[Setup Guide](./docs/SETUP.md)** - Complete installation and configuration
+- **[Tailscale Access](./docs/TAILSCALE_ACCESS.md)** - Tailscale-only access configuration and verification
+- **[Verification Checklist](./docs/VERIFICATION.md)** - Complete verification steps
 - **[Entity Discovery](./docs/ENTITY_DISCOVERY.md)** - Finding SimpliSafe and Alexa entities
 - **[Testing](./docs/TESTING.md)** - Testing procedures and manual triggers
 - **[Troubleshooting](./docs/TROUBLESHOOTING.md)** - Common issues and solutions
@@ -172,10 +179,19 @@ docker-compose logs -f homeassistant
 
 ## Security Notes
 
+**CRITICAL**: This deployment is configured for **Tailscale-only access**.
+
+- ✅ **Port 8123 is NEVER opened via UFW** - socat binds directly to Tailscale IP
+- ✅ **NOT accessible via LAN** - only Tailscale VPN
+- ✅ **NOT accessible via public IP** - only Tailscale VPN
+- ✅ **Tailscale authentication required** - only authenticated devices can access
+
+Additional security:
 - Never commit `secrets.yaml` to git (already in `.gitignore`)
 - Keep Home Assistant updated for security patches
 - Use strong passwords for SimpliSafe and Amazon accounts
-- Restrict firewall to necessary ports only
+- Enable Home Assistant 2FA (Settings → People → Your User)
+- Consider Tailscale ACLs for additional access control
 
 ## Troubleshooting
 

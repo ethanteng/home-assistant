@@ -4,6 +4,28 @@
 # Loads default set of integrations. Do not remove.
 default_config:
 
+# HTTP Configuration - Tailscale-only access
+# Home Assistant binds to 127.0.0.1:8123 (localhost only)
+# socat sidecar forwards Tailscale IP:8123 -> 127.0.0.1:8123
+# This ensures port 8123 is NOT accessible via LAN or public interfaces
+http:
+  # Bind to localhost only - socat handles Tailscale forwarding
+  server_host:
+    - 127.0.0.1  # IPv4 localhost
+    - ::1  # IPv6 localhost
+  server_port: 8123
+  # Trust Tailscale IP ranges (100.x.x.x/10)
+  # This ensures X-Forwarded-For headers from Tailscale are trusted
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - 100.64.0.0/10  # Tailscale IPv4 range (100.64.0.0/10)
+    - fd7a:115c:a1e0::/48  # Tailscale IPv6 range
+    - 127.0.0.1  # Localhost (for socat forwarding)
+    - ::1  # IPv6 localhost
+  # IP ban configuration for security
+  ip_ban_enabled: true
+  login_attempts_threshold: 5
+
 # Load frontend themes from the themes folder
 frontend:
   themes: !include_dir_merged_named themes
