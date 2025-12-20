@@ -25,3 +25,7 @@ Thumbs.db
 # Backups
 *.tar.gz
 backup-*
+
+# Config
+config/.ha_run.lock
+config/home-assistant.log.*
