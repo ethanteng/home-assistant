@@ -7,16 +7,9 @@ views:
       # Header Section - Security Mode and Quick Status
       - type: vertical-stack
         cards:
-          - type: entities
-            title: Security Status
-            show_header_toggle: false
-            entities:
-              - entity: alarm_control_panel.alarm_control_panel
-                name: SimpliSafe Alarm
-                icon: mdi:shield-check
-              - entity: alarm_control_panel.blink_home
-                name: Blink Alarm
-                icon: mdi:shield-check
+          - type: alarm-control-panel
+            entity: alarm_control_panel.alarm_control_panel
+            title: SimpliSafe Alarm
 
       # Arm/Disarm Controls Section
       - type: horizontal-stack
