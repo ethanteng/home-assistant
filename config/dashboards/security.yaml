@@ -1,0 +1,272 @@
+views:
+  - title: Security Dashboard
+    path: security
+    icon: mdi:shield-home
+    badges: []
+    cards:
+      # Header Section - Security Mode and Quick Status
+      - type: vertical-stack
+        cards:
+          - type: entities
+            title: Security Status
+            show_header_toggle: false
+            entities:
+              - entity: input_select.security_mode
+                name: Security Mode
+                icon: mdi:shield-lock
+              - entity: alarm_control_panel.alarm_control_panel
+                name: SimpliSafe Alarm
+                icon: mdi:shield-check
+              - entity: alarm_control_panel.blink_home
+                name: Blink Alarm
+                icon: mdi:shield-check
+
+      # Arm/Disarm Controls Section
+      - type: horizontal-stack
+        cards:
+          - type: button
+            name: Arm Away
+            icon: mdi:shield-lock-outline
+            tap_action:
+              action: call-service
+              service: alarm_control_panel.alarm_arm_away
+              service_data:
+                entity_id:
+                  - alarm_control_panel.alarm_control_panel
+                  - alarm_control_panel.blink_home
+            show_state: false
+            show_name: true
+          - type: button
+            name: Arm Home
+            icon: mdi:shield-home
+            tap_action:
+              action: call-service
+              service: alarm_control_panel.alarm_arm_home
+              service_data:
+                entity_id:
+                  - alarm_control_panel.alarm_control_panel
+                  - alarm_control_panel.blink_home
+            show_state: false
+            show_name: true
+          - type: button
+            name: Disarm
+            icon: mdi:shield-off
+            tap_action:
+              action: call-service
+              service: alarm_control_panel.alarm_disarm
+              service_data:
+                entity_id:
+                  - alarm_control_panel.alarm_control_panel
+                  - alarm_control_panel.blink_home
+            show_state: false
+            show_name: true
+
+      # Camera Grid Section - All Cameras
+      - type: grid
+        title: Camera Feeds
+        square: false
+        columns: 3
+        cards:
+          # Blink Cameras
+          - type: picture-entity
+            entity: camera.back_fence
+            name: Back Fence
+            camera_image: camera.back_fence
+            camera_view: live
+            aspect_ratio: 16:9
+          - type: picture-entity
+            entity: camera.north_yard
+            name: North Yard
+            camera_image: camera.north_yard
+            camera_view: live
+            aspect_ratio: 16:9
+          - type: picture-entity
+            entity: camera.south_yard
+            name: South Yard
+            camera_image: camera.south_yard
+            camera_view: live
+            aspect_ratio: 16:9
+          # Ring Cameras
+          - type: picture-entity
+            entity: camera.doorbell_live_view
+            name: Doorbell
+            camera_image: camera.doorbell_live_view
+            camera_view: live
+            aspect_ratio: 16:9
+          - type: picture-entity
+            entity: camera.front_gate_live_view
+            name: Front Gate
+            camera_image: camera.front_gate_live_view
+            camera_view: live
+            aspect_ratio: 16:9
+          - type: picture-entity
+            entity: camera.street_live_view
+            name: Street
+            camera_image: camera.street_live_view
+            camera_view: live
+            aspect_ratio: 16:9
+
+      # Motion Alert Controls Section
+      - type: vertical-stack
+        title: Motion Alerts
+        cards:
+          - type: entities
+            title: Motion Alert Settings
+            show_header_toggle: false
+            entities:
+              - entity: input_boolean.motion_announcements_enabled
+                name: Motion Announcements Enabled
+                icon: mdi:bell-ring
+              - entity: input_button.announce_test_motion
+                name: Test Motion Announcement
+                icon: mdi:test-tube
+              - entity: input_text.last_motion_message
+                name: Last Motion Message
+                icon: mdi:message-text
+              - entity: input_text.last_motion_source
+                name: Last Motion Source
+                icon: mdi:source-branch
+              - entity: input_datetime.last_motion_announcement
+                name: Last Motion Announcement Time
+                icon: mdi:clock-time-eight
+
+      # Security Sensors Status Section
+      - type: grid
+        title: Security Sensors
+        square: false
+        columns: 2
+        cards:
+          # Door Sensors
+          - type: entities
+            title: Door Sensors
+            show_header_toggle: false
+            entities:
+              - entity: binary_sensor.front_door_entry_door
+                name: Front Door
+                icon: mdi:door
+              - entity: binary_sensor.back_door_entry_door
+                name: Back Door
+                icon: mdi:door
+              - entity: binary_sensor.basement_entry_door
+                name: Basement Entry
+                icon: mdi:door
+              - entity: lock.front_door
+                name: Front Door Lock
+                icon: mdi:lock
+              - entity: lock.front_gate_lock
+                name: Front Gate Lock
+                icon: mdi:lock
+
+          # Motion Sensors
+          - type: entities
+            title: Motion Sensors
+            show_header_toggle: false
+            entities:
+              - entity: binary_sensor.back_door_motion_motion
+                name: Back Door Motion
+                icon: mdi:motion-sensor
+              - entity: binary_sensor.front_door_motion_motion
+                name: Front Door Motion
+                icon: mdi:motion-sensor
+              - entity: binary_sensor.back_fence_motion
+                name: Back Fence Motion
+                icon: mdi:motion-sensor
+              - entity: binary_sensor.north_yard_motion
+                name: North Yard Motion
+                icon: mdi:motion-sensor
+              - entity: binary_sensor.south_yard_motion
+                name: South Yard Motion
+                icon: mdi:motion-sensor
+
+          # Glass Break Sensors
+          - type: entities
+            title: Glass Break Sensors
+            show_header_toggle: false
+            entities:
+              - entity: binary_sensor.living_room_glass_break_safety
+                name: Living Room Glass Break
+                icon: mdi:glass-wine
+              - entity: binary_sensor.basement_glass_break_safety
+                name: Basement Glass Break
+                icon: mdi:glass-wine
+
+          # Smoke/CO Detectors
+          - type: entities
+            title: Smoke & CO Detectors
+            show_header_toggle: false
+            entities:
+              - entity: binary_sensor.downstairs_smoke_and_carbon_monoxide_smoke
+                name: Downstairs Smoke/CO
+                icon: mdi:smoke-detector
+              - entity: binary_sensor.upstairs_smoke_and_carbon_monoxide_smoke
+                name: Upstairs Smoke/CO
+                icon: mdi:smoke-detector
+
+      # Quick Actions Section
+      - type: horizontal-stack
+        title: Quick Actions
+        cards:
+          - type: button
+            name: Clear Notifications
+            icon: mdi:notification-clear-all
+            tap_action:
+              action: call-service
+              service: button.press
+              service_data:
+                entity_id: button.alarm_control_panel_clear_notifications
+            show_state: false
+            show_name: true
+          - type: entities
+            entities:
+              - entity: switch.doorbell_motion_detection
+                name: Doorbell Motion Detection
+                icon: mdi:motion-sensor
+              - entity: switch.front_gate_motion_detection
+                name: Front Gate Motion Detection
+                icon: mdi:motion-sensor
+              - entity: switch.back_fence_camera_motion_detection
+                name: Back Fence Motion Detection
+                icon: mdi:motion-sensor
+              - entity: switch.north_yard_camera_motion_detection
+                name: North Yard Motion Detection
+                icon: mdi:motion-sensor
+              - entity: switch.south_yard_camera_motion_detection
+                name: South Yard Motion Detection
+                icon: mdi:motion-sensor
+
+      # Camera Motion Detection Controls
+      - type: grid
+        title: Camera Motion Detection
+        square: false
+        columns: 3
+        cards:
+          - type: entities
+            entities:
+              - entity: switch.back_fence_camera_motion_detection
+                name: Back Fence
+                icon: mdi:camera
+          - type: entities
+            entities:
+              - entity: switch.north_yard_camera_motion_detection
+                name: North Yard
+                icon: mdi:camera
+          - type: entities
+            entities:
+              - entity: switch.south_yard_camera_motion_detection
+                name: South Yard
+                icon: mdi:camera
+          - type: entities
+            entities:
+              - entity: switch.doorbell_motion_detection
+                name: Doorbell
+                icon: mdi:doorbell-video
+          - type: entities
+            entities:
+              - entity: switch.front_gate_motion_detection
+                name: Front Gate
+                icon: mdi:gate
+          - type: entities
+            entities:
+              - entity: switch.street_motion_detection
+                name: Street
+                icon: mdi:camera

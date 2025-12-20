@@ -1,41 +1,48 @@
 # Home Assistant Configuration
 # https://www.home-assistant.io/docs/configuration/
 
-# Loads default set of integrations. Do not remove.
+# --------------------------------------------------
+# Core defaults (DO NOT REMOVE)
+# --------------------------------------------------
 default_config:
 
-# HTTP Configuration - Tailscale-only access
-# Home Assistant binds to 127.0.0.1:8123 (localhost only)
-# socat sidecar forwards Tailscale IP:8123 -> 127.0.0.1:8123
-# This ensures port 8123 is NOT accessible via LAN or public interfaces
+# --------------------------------------------------
+# HTTP Configuration – Tailscale-only access
+# --------------------------------------------------
 http:
-  # Bind to localhost only - socat handles Tailscale forwarding
-  server_host:
-    - 127.0.0.1  # IPv4 localhost
-    - ::1  # IPv6 localhost
   server_port: 8123
-  # Trust Tailscale IP ranges (100.x.x.x/10)
-  # This ensures X-Forwarded-For headers from Tailscale are trusted
+
   use_x_forwarded_for: true
   trusted_proxies:
-    - 100.64.0.0/10  # Tailscale IPv4 range (100.64.0.0/10)
-    - fd7a:115c:a1e0::/48  # Tailscale IPv6 range
-    - 127.0.0.1  # Localhost (for socat forwarding)
-    - ::1  # IPv6 localhost
-  # IP ban configuration for security
+    - 100.64.0.0/10           # Tailscale IPv4
+    - fd7a:115c:a1e0::/48     # Tailscale IPv6
+    - 127.0.0.1
+    - ::1
+
   ip_ban_enabled: true
   login_attempts_threshold: 5
 
 # Load frontend themes from the themes folder
-frontend:
-  themes: !include_dir_merged_named themes
+# frontend:
+#   themes: !include_dir_merged_named themes
+
+# Lovelace YAML mode for dashboards
+lovelace:
+  mode: yaml
+  dashboards:
+    security-dashboard:
+      mode: yaml
+      title: Security Dashboard
+      icon: mdi:shield-home
+      show_in_sidebar: true
+      filename: dashboards/security.yaml
 
 # Text to speech
-tts:
-  - platform: alexa
+# tts:
+#   - platform: alexa
 
 # Input helpers
-input_datetime: !include input_datetime.yaml
+input_datetime: !include helpers/input_datetime.yaml
 
 # Automations
 automation: !include automations.yaml
@@ -64,4 +71,3 @@ logger:
     homeassistant.components.automation: debug
     homeassistant.components.simplisafe: info
     homeassistant.components.alexa_media: info
-

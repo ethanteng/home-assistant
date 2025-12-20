@@ -1,0 +1,56 @@
+input_select:
+  security_mode:
+    name: Security Mode
+    options:
+      - Off
+      - Home
+      - Away
+    initial: Home
+
+input_boolean:
+  announce_motion_off:
+    name: Announce Motion (Off)
+    icon: mdi:volume-high
+    initial: true
+
+  announce_motion_home:
+    name: Announce Motion (Home)
+    icon: mdi:volume-high
+    initial: true
+
+  announce_motion_away:
+    name: Announce Motion (Away)
+    icon: mdi:volume-high
+    initial: true
+
+  quiet_hours_enabled:
+    name: Quiet Hours Enabled
+    icon: mdi:sleep
+    initial: true
+
+input_datetime:
+  quiet_hours_start:
+    name: Quiet Hours Start
+    has_time: true
+    has_date: false
+    initial: "23:00:00"
+
+  quiet_hours_end:
+    name: Quiet Hours End
+    has_time: true
+    has_date: false
+    initial: "06:00:00"
+
+  last_motion_announcement:
+    name: Last Motion Announcement
+    has_time: true
+    has_date: true
+
+input_text:
+  alexa_announce_target:
+    name: Alexa Announce Target
+    initial: notify.alexa_media_everywhere
+
+input_button:
+  test_motion_announcement:
+    name: Test Motion Announcement

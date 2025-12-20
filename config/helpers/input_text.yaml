@@ -1,0 +1,7 @@
+last_motion_source:
+  name: Last Motion Source
+  max: 50
+
+last_motion_message:
+  name: Last Motion Message
+  max: 255

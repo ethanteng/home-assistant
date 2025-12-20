@@ -1,0 +1,17 @@
+alias: Alexa Test Motion Announcement
+id: alexa_test_motion_announcement
+mode: single
+
+trigger:
+  - platform: state
+    entity_id: input_button.announce_test_motion
+
+condition:
+  - condition: state
+    entity_id: input_boolean.motion_announcements_enabled
+    state: "on"
+
+action:
+  - service: notify.bella_vista_announce
+    data:
+      message: "Test motion announcement. Alexa announcements are working."

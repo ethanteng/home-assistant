@@ -1,0 +1,6 @@
+security_mode:
+  name: Security Mode
+  options:
+    - Home
+    - Away
+    - Off

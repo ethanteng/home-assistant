@@ -1,0 +1,3 @@
+announce_test_motion:
+  name: Test Motion Announcement
+  icon: mdi:bullhorn

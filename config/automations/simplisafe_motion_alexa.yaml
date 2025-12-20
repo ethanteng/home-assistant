@@ -1,0 +1,35 @@
+id: simplisafe_motion_alexa_alert
+alias: "SimpliSafe Motion → Alexa Alert"
+description: "Handle SimpliSafe motion events"
+mode: single
+
+trigger:
+  - platform: state
+    entity_id:
+      - binary_sensor.front_door_camera_motion
+      - binary_sensor.back_door_camera_motion
+    to: "on"
+    for:
+      seconds: 1
+
+condition:
+  - condition: or
+    conditions:
+      - condition: state
+        entity_id: alarm_control_panel.simplisafe
+        state: "armed_away"
+      - condition: state
+        entity_id: alarm_control_panel.simplisafe
+        state: "armed_home"
+
+action:
+  - service: input_datetime.set_datetime
+    target:
+      entity_id: input_datetime.last_motion_announcement
+    data:
+      datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+
+  - service: system_log.write
+    data:
+      level: info
+      message: "SimpliSafe motion trigger fired for {{ trigger.entity_id }}"
