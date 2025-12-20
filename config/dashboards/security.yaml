@@ -22,40 +22,37 @@ views:
       - type: horizontal-stack
         cards:
           - type: button
+            entity: alarm_control_panel.alarm_control_panel
             name: Arm Away
             icon: mdi:shield-lock-outline
             tap_action:
               action: call-service
               service: alarm_control_panel.alarm_arm_away
               service_data:
-                entity_id:
-                  - alarm_control_panel.alarm_control_panel
-                  - alarm_control_panel.blink_home
-            show_state: false
+                entity_id: alarm_control_panel.alarm_control_panel
+            show_state: true
             show_name: true
           - type: button
+            entity: alarm_control_panel.alarm_control_panel
             name: Arm Home
             icon: mdi:shield-home
             tap_action:
               action: call-service
               service: alarm_control_panel.alarm_arm_home
               service_data:
-                entity_id:
-                  - alarm_control_panel.alarm_control_panel
-                  - alarm_control_panel.blink_home
-            show_state: false
+                entity_id: alarm_control_panel.alarm_control_panel
+            show_state: true
             show_name: true
           - type: button
+            entity: alarm_control_panel.alarm_control_panel
             name: Disarm
             icon: mdi:shield-off
             tap_action:
               action: call-service
               service: alarm_control_panel.alarm_disarm
               service_data:
-                entity_id:
-                  - alarm_control_panel.alarm_control_panel
-                  - alarm_control_panel.blink_home
-            show_state: false
+                entity_id: alarm_control_panel.alarm_control_panel
+            show_state: true
             show_name: true
 
       # Camera Grid Section - All Cameras
