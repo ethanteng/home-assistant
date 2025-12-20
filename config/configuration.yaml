@@ -26,17 +26,6 @@ http:
 # frontend:
 #   themes: !include_dir_merged_named themes
 
-# Lovelace YAML mode for dashboards
-lovelace:
-  mode: yaml
-  dashboards:
-    security-dashboard:
-      mode: yaml
-      title: Security Dashboard
-      icon: mdi:shield-home
-      show_in_sidebar: true
-      filename: dashboards/security.yaml
-
 # Text to speech
 # tts:
 #   - platform: alexa
