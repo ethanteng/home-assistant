@@ -11,9 +11,6 @@ views:
             title: Security Status
             show_header_toggle: false
             entities:
-              - entity: input_select.security_mode
-                name: Security Mode
-                icon: mdi:shield-lock
               - entity: alarm_control_panel.alarm_control_panel
                 name: SimpliSafe Alarm
                 icon: mdi:shield-check

@@ -1,0 +1,44 @@
+# Automation to sync input_select.security_mode to both SimpliSafe and Blink alarms
+- id: unified_security_control
+  alias: Unified Security Control
+  description: Controls both SimpliSafe and Blink alarms based on security_mode input_select
+  trigger:
+    - platform: state
+      entity_id: input_select.security_mode
+  action:
+    - choose:
+        # Disarm both alarms
+        - conditions:
+            - condition: state
+              entity_id: input_select.security_mode
+              state: "Off"
+          sequence:
+            - service: alarm_control_panel.alarm_disarm
+              target:
+                entity_id:
+                  - alarm_control_panel.alarm_control_panel
+                  - alarm_control_panel.blink_home
+        # Arm Home on both alarms
+        - conditions:
+            - condition: state
+              entity_id: input_select.security_mode
+              state: "Home"
+          sequence:
+            - service: alarm_control_panel.alarm_arm_home
+              target:
+                entity_id:
+                  - alarm_control_panel.alarm_control_panel
+                  - alarm_control_panel.blink_home
+        # Arm Away on both alarms
+        - conditions:
+            - condition: state
+              entity_id: input_select.security_mode
+              state: "Away"
+          sequence:
+            - service: alarm_control_panel.alarm_arm_away
+              target:
+                entity_id:
+                  - alarm_control_panel.alarm_control_panel
+                  - alarm_control_panel.blink_home
+  mode: single
+
