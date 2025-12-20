@@ -87,24 +87,51 @@ views:
             camera_view: live
             aspect_ratio: 16:9
           # Ring Cameras
-          - type: picture-entity
-            entity: camera.doorbell_live_view
-            name: Doorbell
-            camera_image: camera.doorbell_live_view
-            camera_view: live
-            aspect_ratio: 16:9
-          - type: picture-entity
-            entity: camera.front_gate_live_view
-            name: Front Gate
-            camera_image: camera.front_gate_live_view
-            camera_view: live
-            aspect_ratio: 16:9
-          - type: picture-entity
-            entity: camera.street_live_view
-            name: Street
-            camera_image: camera.street_live_view
-            camera_view: live
-            aspect_ratio: 16:9
+          - type: vertical-stack
+            cards:
+              - type: picture-entity
+                entity: camera.doorbell_live_view
+                name: Doorbell
+                camera_image: camera.doorbell_live_view
+                aspect_ratio: 16:9
+              - type: button
+                name: View Live
+                icon: mdi:play-circle
+                tap_action:
+                  action: more-info
+                  entity: camera.doorbell_live_view
+                show_state: false
+                show_name: true
+          - type: vertical-stack
+            cards:
+              - type: picture-entity
+                entity: camera.front_gate_live_view
+                name: Front Gate
+                camera_image: camera.front_gate_live_view
+                aspect_ratio: 16:9
+              - type: button
+                name: View Live
+                icon: mdi:play-circle
+                tap_action:
+                  action: more-info
+                  entity: camera.front_gate_live_view
+                show_state: false
+                show_name: true
+          - type: vertical-stack
+            cards:
+              - type: picture-entity
+                entity: camera.street_live_view
+                name: Street
+                camera_image: camera.street_live_view
+                aspect_ratio: 16:9
+              - type: button
+                name: View Live
+                icon: mdi:play-circle
+                tap_action:
+                  action: more-info
+                  entity: camera.street_live_view
+                show_state: false
+                show_name: true
 
       # Motion Alert Controls Section
       - type: vertical-stack
