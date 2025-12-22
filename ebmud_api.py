@@ -42,6 +42,8 @@ def fetch_csv_via_browser():
         # 1) Go to CSV URL — this will trigger SAML login
         page.goto(CSV_URL, wait_until="networkidle")
 
+        page.screenshot(path="/tmp/ebmud_login.png", full_page=True)
+
         # 2) Login form (CAS)
         page.fill('input[name="username"]', EMAIL)
         page.fill('input[name="password"]', PASSWORD)
