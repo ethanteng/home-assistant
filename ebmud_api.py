@@ -7,7 +7,7 @@ from playwright.sync_api import sync_playwright
 
 load_dotenv()
 
-EBMUD_USERNAME = os.environ["EBMUD_USERNAME"]
+EBMUD_USERNAME = os.environ["EBMUD_EMAIL"]
 EBMUD_PASSWORD = os.environ["EBMUD_PASSWORD"]
 
 LOGIN_URL = "https://cas.ebmud.com"
