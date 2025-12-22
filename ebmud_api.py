@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os
+import csv
 from flask import Flask, Response, jsonify
 from playwright.sync_api import sync_playwright, TimeoutError
 from dotenv import load_dotenv
@@ -17,6 +18,8 @@ EBMUD_PASSWORD = os.environ["EBMUD_PASSWORD"]
 # -------------------------------------------------------------------
 ENTRY_URL = "https://ebmud.waterinsight.com/index.php/trackUsage"
 DOWNLOAD_PAGE_URL = "https://ebmud.watersmart.com/index.php/accountPreferences/download"
+
+CACHE_PATH = "/tmp/ebmud_cache.csv"
 
 app = Flask(__name__)
 
@@ -36,24 +39,16 @@ def fetch_csv_via_browser() -> str:
         context = browser.new_context()
         page = context.new_page()
 
-        # ------------------------------------------------------------
-        # 1) Entry point — this is CRITICAL
-        # ------------------------------------------------------------
+        # 1) Entry point
         page.goto(ENTRY_URL, wait_until="domcontentloaded")
 
-        # ------------------------------------------------------------
-        # 2) CAS login form
-        # ------------------------------------------------------------
+        # 2) CAS login
         page.locator("form#log_in_form").wait_for(timeout=20_000)
-
         page.fill("#username", EBMUD_USERNAME)
         page.fill("#upassword", EBMUD_PASSWORD)
-
         page.click("form#log_in_form button[type='submit']")
 
-        # ------------------------------------------------------------
-        # 3) Wait for SAML landing
-        # ------------------------------------------------------------
+        # 3) SAML landing
         try:
             page.wait_for_url(
                 lambda url: "ebmudSaml/landing" in url,
@@ -63,9 +58,7 @@ def fetch_csv_via_browser() -> str:
             page.screenshot(path="/tmp/ebmud_saml_timeout.png", full_page=True)
             raise RuntimeError("Timed out waiting for SAML landing")
 
-        # ------------------------------------------------------------
-        # 4) Wait for real WaterSmart app
-        # ------------------------------------------------------------
+        # 4) WaterSmart app
         try:
             page.wait_for_url(
                 lambda url: "trackUsage" in url and "watersmart.com" in url,
@@ -75,14 +68,10 @@ def fetch_csv_via_browser() -> str:
             page.screenshot(path="/tmp/ebmud_trackusage_timeout.png", full_page=True)
             raise RuntimeError("Timed out waiting for WaterSmart app")
 
-        # ------------------------------------------------------------
-        # 5) Go to download page (authenticated)
-        # ------------------------------------------------------------
+        # 5) Download page
         page.goto(DOWNLOAD_PAGE_URL, wait_until="networkidle")
 
-        # ------------------------------------------------------------
-        # 6) Trigger CSV download and capture response
-        # ------------------------------------------------------------
+        # 6) Trigger CSV download
         with page.expect_download(timeout=30_000) as download_info:
             page.locator("a[href*='Download']").first.click()
 
@@ -98,14 +87,12 @@ def fetch_csv_via_browser() -> str:
 
 
 # -------------------------------------------------------------------
-# Flask route
+# Flask routes
 # -------------------------------------------------------------------
+
 @app.route("/water/daily")
 def daily_water():
     try:
-        #csv_data = fetch_csv_via_browser()
-        CACHE_PATH = "/tmp/ebmud_cache.csv"
-
         if not os.path.exists(CACHE_PATH):
             raise RuntimeError("EBMUD cache missing — cron hasn’t run yet")
 
@@ -116,7 +103,7 @@ def daily_water():
             csv_data,
             mimetype="text/csv",
             headers={
-                "Content-Disposition": "inline; filename=ebmud_water_usage.csv"
+                "Content-Disposition": "inline; filename=ebmud_cache.csv"
             },
         )
     except Exception as e:
@@ -130,25 +117,28 @@ def daily_water():
 
 @app.route("/water/latest")
 def latest_water():
-    CACHE_PATH = "/tmp/ebmud_cache.csv"
-
     if not os.path.exists(CACHE_PATH):
         return jsonify({"error": "cache missing"}), 500
 
-    with open(CACHE_PATH) as f:
+    with open(CACHE_PATH, newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         rows = list(reader)
 
-    latest = rows[0]  # most recent reading
+    if not rows:
+        return jsonify({"error": "no data in cache"}), 500
+
+    # WaterSmart currently returns newest first,
+    # but we defensively take the first non-empty row.
+    latest = rows[0]
     return jsonify(latest)
 
 
 # -------------------------------------------------------------------
-# Fetch and cache EBMUD CSV
+# Fetch + cache (used by cron)
 # -------------------------------------------------------------------
 def fetch_and_cache():
     csv_data = fetch_csv_via_browser()
-    with open("/tmp/ebmud_cache.csv", "w") as f:
+    with open(CACHE_PATH, "w", encoding="utf-8") as f:
         f.write(csv_data)
 
 
