@@ -1,121 +1,82 @@
-#!/usr/bin/env python3
 import os
 import csv
-import json
-import time
+import io
 from flask import Flask, jsonify
 from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
 
 load_dotenv()
 
-EMAIL = os.getenv("EBMUD_EMAIL")
-PASSWORD = os.getenv("EBMUD_PASSWORD")
-PORT = int(os.getenv("PORT", 8081))
+EBMUD_USERNAME = os.environ["EBMUD_USERNAME"]
+EBMUD_PASSWORD = os.environ["EBMUD_PASSWORD"]
 
-CSV_URL = "https://ebmud.watersmart.com/index.php/accountPreferences/download"
-
-CACHE_FILE = "/tmp/ebmud_cache.json"
-CACHE_TTL = 23 * 3600  # once per day, politely
+LOGIN_URL = "https://cas.ebmud.com"
+DOWNLOAD_URL = "https://ebmud.watersmart.com/index.php/accountPreferences/download"
 
 app = Flask(__name__)
-app.config["DEBUG"] = True
 
-def cached():
-    if not os.path.exists(CACHE_FILE):
-        return None
-    if time.time() - os.path.getmtime(CACHE_FILE) > CACHE_TTL:
-        return None
-    with open(CACHE_FILE) as f:
-        return json.load(f)
-
-def save_cache(data):
-    with open(CACHE_FILE, "w") as f:
-        json.dump(data, f)
 
 def fetch_csv_via_browser():
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        context = browser.new_context(accept_downloads=True)
+        context = browser.new_context()
         page = context.new_page()
 
-        # 1) Go to CSV URL — this will trigger SAML login
-        #page.goto(CSV_URL, wait_until="networkidle")
+        # --- Login ---
+        page.goto(LOGIN_URL, wait_until="domcontentloaded")
 
-        #page.screenshot(path="/tmp/ebmud_login.png", full_page=True)
-
-        # 2) Login form (CAS)
-        page.goto(CSV_URL, wait_until="domcontentloaded")
-
-        page.get_by_label("EBMUD ID (email address)").fill(EMAIL)
-        page.locator("input[type='password']").fill(PASSWORD)
+        page.get_by_label("EBMUD ID (email address)").fill(EBMUD_USERNAME)
+        page.locator("input[type='password']").fill(EBMUD_PASSWORD)
 
         with page.expect_navigation(timeout=60000):
             page.get_by_role("button", name="Login").click()
 
-        # 3) Wait for redirect back to WaterSmart
-        page.wait_for_url("**watersmart.com/**", timeout=60000)
+        # --- Fetch CSV directly (no clicking) ---
+        response = page.goto(DOWNLOAD_URL, wait_until="networkidle")
 
-        page.on("response", lambda r: print("RESPONSE:", r.url, r.status))
+        if not response or response.status != 200:
+            raise RuntimeError(
+                f"Failed to fetch CSV: HTTP {response.status if response else 'no response'}"
+            )
 
-        # 4) Trigger CSV download again (now authenticated)
-        with page.expect_response("**/download*") as resp_info:
-            page.click("text=Download")
-
-        csv_text = resp_info.value.text()
-
-        download = download_info.value
-        csv_path = download.path()
+        csv_text = response.text()
 
         browser.close()
 
-    # 5) Parse CSV
-    with open(csv_path, newline="") as f:
-        reader = csv.DictReader(f)
-        rows = list(reader)
+    return csv_text
+
+
+def parse_csv(csv_text):
+    reader = csv.DictReader(io.StringIO(csv_text))
+    rows = list(reader)
 
     if not rows:
-        raise RuntimeError("CSV contained no rows")
+        raise RuntimeError("CSV parsed successfully but contains no rows")
 
     latest = rows[-1]
 
-    usage = (
-        latest.get("Usage")
-        or latest.get("Usage (Gallons)")
-        or latest.get("Gallons")
-    )
-
-    if usage is None:
-        raise RuntimeError(f"Unknown CSV schema: {latest.keys()}")
-
     return {
-        "source": "ebmud_watersmart_playwright",
-        "latest_usage_gallons": float(usage),
         "rows": len(rows),
-        "timestamp": int(time.time())
+        "latest_date": latest.get("Date"),
+        "latest_usage_gallons": latest.get("Usage (Gallons)"),
     }
+
 
 @app.route("/health")
 def health():
-    return {"status": "ok"}
+    return jsonify({"status": "ok"})
+
 
 @app.route("/water/daily")
 def daily_water():
-    data = cached()
-    if data:
-        return jsonify(data | {"cached": True})
+    csv_text = fetch_csv_via_browser()
+    data = parse_csv(csv_text)
 
-    try:
-        data = fetch_csv_via_browser()
-        save_cache(data)
-        return jsonify(data | {"cached": False})
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return jsonify({
-            "error": str(e),
-            "cached": False
-        }), 500
+    return jsonify({
+        "cached": False,
+        **data,
+    })
+
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=PORT)
+    app.run(host="127.0.0.1", port=8081, debug=True)
