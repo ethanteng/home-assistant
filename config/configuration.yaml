@@ -69,11 +69,11 @@ template:
         device_class: energy
         state_class: total_increasing
         state: >
-          {{ states('sensor.opower:pge_elec_2889422103_energy_consumption) | float(0) }}
+          {{ states('sensor.opower_pge_elec_2889422103_consumption') | float(0) }}
       - name: "PG&E Gas Energy"
         unique_id: pge_gas_energy
         unit_of_measurement: "CCF"
         device_class: gas
         state_class: total_increasing
         state: >
-          {{ states('sensor.opower:pge_gas_2886724588_energy_consumption') | float(0) }}
+          {{ states('sensor.opower_pge_gas_2886724588_consumption') | float(0) }}
