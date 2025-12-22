@@ -40,14 +40,18 @@ def fetch_csv_via_browser():
         page = context.new_page()
 
         # 1) Go to CSV URL — this will trigger SAML login
-        page.goto(CSV_URL, wait_until="networkidle")
+        #page.goto(CSV_URL, wait_until="networkidle")
 
-        page.screenshot(path="/tmp/ebmud_login.png", full_page=True)
+        #page.screenshot(path="/tmp/ebmud_login.png", full_page=True)
 
         # 2) Login form (CAS)
-        page.fill('input[name="username"]', EMAIL)
-        page.fill('input[name="password"]', PASSWORD)
-        page.click('button[type="submit"]')
+        page.goto(CSV_URL, wait_until="domcontentloaded")
+
+        page.get_by_label("EBMUD ID (email address)").fill(EMAIL)
+        page.locator("input[type='password']").fill(PASSWORD)
+
+        with page.expect_navigation(timeout=60000):
+            page.get_by_role("button", name="Login").click()
 
         # 3) Wait for redirect back to WaterSmart
         page.wait_for_url("**watersmart.com/**", timeout=60000)
