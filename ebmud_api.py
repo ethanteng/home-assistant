@@ -23,16 +23,19 @@ def fetch_csv_via_browser():
         page = context.new_page()
 
         # --- Login ---
-        page.goto(LOGIN_URL, wait_until="domcontentloaded")
+        page.goto("https://www.ebmud.com/customer-login", wait_until="domcontentloaded")
 
-        page.get_by_label("EBMUD ID (email address)").fill(EBMUD_USERNAME)
-        page.locator("input[type='password']").fill(EBMUD_PASSWORD)
+        page.locator('input[name="email"]').wait_for(state="visible", timeout=15_000)
+        page.locator('input[name="email"]').fill(EBMUD_USERNAME)
+        page.locator('input[name="password"]').fill(EBMUD_PASSWORD)
 
-        with page.expect_navigation(timeout=60000):
-            page.get_by_role("button", name="Login").click()
+        page.locator('button[type="submit"]').click()
 
-        # --- Fetch CSV directly (no clicking) ---
-        response = page.goto(DOWNLOAD_URL, wait_until="networkidle")
+        # Wait for auth to settle (cookie + redirect)
+        page.wait_for_load_state("load")
+
+        # --- Fetch CSV directly ---
+        response = page.goto(DOWNLOAD_URL, wait_until="domcontentloaded")
 
         if not response or response.status != 200:
             raise RuntimeError(
@@ -42,8 +45,7 @@ def fetch_csv_via_browser():
         csv_text = response.text()
 
         browser.close()
-
-    return csv_text
+        return csv_text
 
 
 def parse_csv(csv_text):
