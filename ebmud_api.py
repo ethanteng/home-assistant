@@ -56,9 +56,13 @@ def fetch_csv_via_browser():
         # 3) Wait for redirect back to WaterSmart
         page.wait_for_url("**watersmart.com/**", timeout=60000)
 
+        page.on("response", lambda r: print("RESPONSE:", r.url, r.status))
+
         # 4) Trigger CSV download again (now authenticated)
-        with page.expect_download() as download_info:
-            page.goto(CSV_URL)
+        with page.expect_response("**/download*") as resp_info:
+            page.click("text=Download")
+
+        csv_text = resp_info.value.text()
 
         download = download_info.value
         csv_path = download.path()
