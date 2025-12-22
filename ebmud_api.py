@@ -43,17 +43,18 @@ def fetch_csv_via_browser() -> str:
         page.goto(LOGIN_URL, wait_until="domcontentloaded")
 
         # Wait for actual fields seen in the browser
-        page.wait_for_selector('input[name="username"]', timeout=20_000)
+        page.locator("#username").wait_for(state="visible", timeout=15_000)
+        page.locator("#username").fill(EBMUD_USERNAME)
 
-        page.fill('input[name="username"]', EBMUD_USERNAME)
-        page.fill('input[name="password"]', EBMUD_PASSWORD)
+        page.locator("#password").fill(EBMUD_PASSWORD)
 
-        page.click('button[type="submit"]')
+        page.locator('button[type="submit"]').click()
 
         # ------------------------------------------------------------
         # 2) Let CAS → SAML → WaterSmart redirects finish
         # ------------------------------------------------------------
-        page.wait_for_load_state("networkidle", timeout=30_000)
+        #page.wait_for_load_state("networkidle", timeout=30_000)
+        page.wait_for_url("**/index.php/**", timeout=30_000)
 
         # Debug checkpoint after login
         page.screenshot(
