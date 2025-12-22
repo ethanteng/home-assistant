@@ -103,7 +103,15 @@ def fetch_csv_via_browser() -> str:
 @app.route("/water/daily")
 def daily_water():
     try:
-        csv_data = fetch_csv_via_browser()
+        #csv_data = fetch_csv_via_browser()
+        CACHE_PATH = "/tmp/ebmud_cache.csv"
+
+        if not os.path.exists(CACHE_PATH):
+            raise RuntimeError("EBMUD cache missing — cron hasn’t run yet")
+
+        with open(CACHE_PATH) as f:
+            csv_data = f.read()
+
         return Response(
             csv_data,
             mimetype="text/csv",
@@ -118,6 +126,28 @@ def daily_water():
                 "details": str(e),
             }
         ), 500
+
+# -------------------------------------------------------------------
+# Fetch and cache EBMUD CSV
+# -------------------------------------------------------------------
+def fetch_and_cache():
+    csv_data = fetch_csv_via_browser()
+    with open("/tmp/ebmud_cache.csv", "w") as f:
+        f.write(csv_data)
+
+
+if __name__ == "__main__":
+    import sys
+
+    if len(sys.argv) > 1 and sys.argv[1] == "fetch":
+        fetch_and_cache()
+        print("EBMUD CSV fetched and cached")
+    else:
+        app.run(
+            host="127.0.0.1",
+            port=8081,
+            debug=False,
+        )
 
 
 # -------------------------------------------------------------------
