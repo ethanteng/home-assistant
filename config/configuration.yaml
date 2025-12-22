@@ -60,3 +60,20 @@ logger:
     homeassistant.components.automation: debug
     homeassistant.components.simplisafe: info
     homeassistant.components.alexa_media: info
+
+template:
+  - sensor:
+      - name: "PG&E Electricity Energy"
+        unique_id: pge_electricity_energy
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state_class: total_increasing
+        state: >
+          {{ states('sensor.opower:pge_elec_2889422103_energy_consumption) | float(0) }}
+      - name: "PG&E Gas Energy"
+        unique_id: pge_gas_energy
+        unit_of_measurement: "CCF"
+        device_class: gas
+        state_class: total_increasing
+        state: >
+          {{ states('sensor.opower:pge_gas_2886724588_energy_consumption') | float(0) }}
