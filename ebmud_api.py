@@ -19,6 +19,7 @@ CACHE_FILE = "/tmp/ebmud_cache.json"
 CACHE_TTL = 23 * 3600  # once per day, politely
 
 app = Flask(__name__)
+app.config["DEBUG"] = True
 
 def cached():
     if not os.path.exists(CACHE_FILE):
@@ -34,7 +35,7 @@ def save_cache(data):
 
 def fetch_csv_via_browser():
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
+        browser = p.chromium.launch(headless=False)
         context = browser.new_context(accept_downloads=True)
         page = context.new_page()
 
@@ -99,6 +100,8 @@ def daily_water():
         save_cache(data)
         return jsonify(data | {"cached": False})
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({
             "error": str(e),
             "cached": False
