@@ -1,24 +1,33 @@
 #!/usr/bin/env python3
 import os
 from flask import Flask, Response, jsonify
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
 from dotenv import load_dotenv
 
+# ---------------------------------------------------------
+# Load environment variables from .env
+# ---------------------------------------------------------
 load_dotenv()
 
-# -------------------------------------------------------------------
-# Environment variables (required)
-# -------------------------------------------------------------------
-# export EBMUD_EMAIL="you@example.com"
-# export EBMUD_PASSWORD="supersecret"
-# -------------------------------------------------------------------
+EBMUD_USERNAME = os.getenv("EBMUD_EMAIL")
+EBMUD_PASSWORD = os.getenv("EBMUD_PASSWORD")
 
-EBMUD_USERNAME = os.environ["EBMUD_EMAIL"]
-EBMUD_PASSWORD = os.environ["EBMUD_PASSWORD"]
+if not EBMUD_USERNAME or not EBMUD_PASSWORD:
+    raise RuntimeError(
+        "Missing credentials. Set EBMUD_EMAIL and EBMUD_PASSWORD in .env or environment."
+    )
 
-LOGIN_URL = "https://cas.ebmud.com/cas/login"
-DOWNLOAD_URL = "https://ebmud.watersmart.com/index.php/Download/usage?combined=0"
+# ---------------------------------------------------------
+# URLs
+# ---------------------------------------------------------
+CAS_LOGIN_URL = "https://cas.ebmud.com/cas/login"
+WATERSMART_DOWNLOAD_URL = (
+    "https://ebmud.watersmart.com/index.php/Download/usage?combined=0"
+)
 
+# ---------------------------------------------------------
+# Flask app
+# ---------------------------------------------------------
 app = Flask(__name__)
 
 
@@ -31,49 +40,60 @@ def fetch_csv_via_browser() -> str:
     with sync_playwright() as p:
         browser = p.chromium.launch(
             headless=True,
-            args=["--disable-blink-features=AutomationControlled"],
+            args=[
+                "--disable-blink-features=AutomationControlled",
+                "--no-sandbox",
+            ],
         )
 
         context = browser.new_context()
         page = context.new_page()
 
-        # ------------------------------------------------------------
-        # 1) Go directly to CAS login (this is the real entry point)
-        # ------------------------------------------------------------
-        page.goto(LOGIN_URL, wait_until="domcontentloaded")
+        # -----------------------------------------------------
+        # 1) Open CAS login
+        # -----------------------------------------------------
+        page.goto(CAS_LOGIN_URL, wait_until="domcontentloaded")
 
-        # Wait for the login form itself (strong anchor)
-        page.locator("form#log_in_form").wait_for(timeout=15_000)
+        # Hard wait for the actual login form
+        page.locator("form#log_in_form").wait_for(timeout=20_000)
 
-        # Fill credentials
-        page.locator("#username").fill(EBMUD_USERNAME)
-        page.locator("#upassword").fill(EBMUD_PASSWORD)
+        # Debug: capture login page
+        page.screenshot(path="/tmp/ebmud_login_page.png", full_page=True)
 
-        # Submit
-        page.locator("form#log_in_form button[type='submit']").click()
+        # -----------------------------------------------------
+        # 2) Fill credentials (CORRECT selectors)
+        # -----------------------------------------------------
+        page.fill("#username", EBMUD_USERNAME)
+        page.fill("#upassword", EBMUD_PASSWORD)
 
-        # ------------------------------------------------------------
-        # 2) Let CAS → SAML → WaterSmart redirects finish
-        # ------------------------------------------------------------
-        #page.wait_for_load_state("networkidle", timeout=30_000)
-        page.wait_for_url(
-            lambda url: (
-                "watersmart.com" in url
-                or "/customers/" in url
-            ),
-            timeout=30_000
+        # Submit form
+        page.click("form#log_in_form button[type='submit']")
+
+        # -----------------------------------------------------
+        # 3) Wait for CAS → SAML → WaterSmart redirect chain
+        # -----------------------------------------------------
+        try:
+            page.wait_for_url(
+                lambda url: "watersmart.com" in url,
+                timeout=60_000,
+            )
+        except PlaywrightTimeout:
+            page.screenshot(
+                path="/tmp/ebmud_login_redirect_timeout.png",
+                full_page=True,
+            )
+            raise RuntimeError("Timed out waiting for WaterSmart redirect")
+
+        # Debug: post-login landing
+        page.screenshot(path="/tmp/ebmud_after_login.png", full_page=True)
+
+        # -----------------------------------------------------
+        # 4) Download CSV
+        # -----------------------------------------------------
+        response = page.goto(
+            WATERSMART_DOWNLOAD_URL,
+            wait_until="networkidle",
         )
-
-        # Debug checkpoint after login
-        page.screenshot(
-            path="/tmp/ebmud_after_login.png",
-            full_page=True,
-        )
-
-        # ------------------------------------------------------------
-        # 3) Download CSV directly
-        # ------------------------------------------------------------
-        response = page.goto(DOWNLOAD_URL, wait_until="networkidle")
 
         if not response or response.status != 200:
             page.screenshot(
@@ -81,8 +101,7 @@ def fetch_csv_via_browser() -> str:
                 full_page=True,
             )
             raise RuntimeError(
-                f"CSV download failed: "
-                f"{response.status if response else 'no response'}"
+                f"CSV download failed (status={response.status if response else 'none'})"
             )
 
         csv_text = response.text()
@@ -91,10 +110,9 @@ def fetch_csv_via_browser() -> str:
         return csv_text
 
 
-# -------------------------------------------------------------------
-# Flask routes
-# -------------------------------------------------------------------
-
+# ---------------------------------------------------------
+# Flask route
+# ---------------------------------------------------------
 @app.route("/water/daily")
 def daily_water():
     try:
@@ -115,10 +133,9 @@ def daily_water():
         ), 500
 
 
-# -------------------------------------------------------------------
+# ---------------------------------------------------------
 # Entrypoint
-# -------------------------------------------------------------------
-
+# ---------------------------------------------------------
 if __name__ == "__main__":
     app.run(
         host="127.0.0.1",
