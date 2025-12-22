@@ -1,126 +1,105 @@
 #!/usr/bin/env python3
 import os
 from flask import Flask, Response, jsonify
-from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
+from playwright.sync_api import sync_playwright, TimeoutError
 from dotenv import load_dotenv
 
-# ---------------------------------------------------------
-# Load environment variables from .env
-# ---------------------------------------------------------
 load_dotenv()
 
-EBMUD_USERNAME = os.getenv("EBMUD_EMAIL")
-EBMUD_PASSWORD = os.getenv("EBMUD_PASSWORD")
+# -------------------------------------------------------------------
+# Required environment variables
+# -------------------------------------------------------------------
+EBMUD_USERNAME = os.environ["EBMUD_EMAIL"]
+EBMUD_PASSWORD = os.environ["EBMUD_PASSWORD"]
 
-if not EBMUD_USERNAME or not EBMUD_PASSWORD:
-    raise RuntimeError(
-        "Missing credentials. Set EBMUD_EMAIL and EBMUD_PASSWORD in .env or environment."
-    )
+# -------------------------------------------------------------------
+# URLs (confirmed real flow)
+# -------------------------------------------------------------------
+ENTRY_URL = "https://ebmud.waterinsight.com/index.php/trackUsage"
+DOWNLOAD_PAGE_URL = "https://ebmud.watersmart.com/index.php/accountPreferences/download"
 
-# ---------------------------------------------------------
-# URLs
-# ---------------------------------------------------------
-CAS_LOGIN_URL = "https://cas.ebmud.com/cas/login"
-WATERSMART_DOWNLOAD_URL = (
-    "https://ebmud.watersmart.com/index.php/Download/usage?combined=0"
-)
-
-# ---------------------------------------------------------
-# Flask app
-# ---------------------------------------------------------
 app = Flask(__name__)
 
 
 def fetch_csv_via_browser() -> str:
     """
-    Logs into EBMUD via CAS and downloads the WaterSmart usage CSV.
-    Returns raw CSV text.
+    Logs into EBMUD via CAS + SAML, enters WaterSmart correctly,
+    navigates to the download page, and captures the CSV.
     """
 
     with sync_playwright() as p:
         browser = p.chromium.launch(
             headless=True,
-            args=[
-                "--disable-blink-features=AutomationControlled",
-                "--no-sandbox",
-            ],
+            args=["--disable-blink-features=AutomationControlled"],
         )
 
         context = browser.new_context()
         page = context.new_page()
 
-        # -----------------------------------------------------
-        # 1) Open CAS login
-        # -----------------------------------------------------
-        page.goto(CAS_LOGIN_URL, wait_until="domcontentloaded")
+        # ------------------------------------------------------------
+        # 1) Entry point — this is CRITICAL
+        # ------------------------------------------------------------
+        page.goto(ENTRY_URL, wait_until="domcontentloaded")
 
-        # Hard wait for the actual login form
+        # ------------------------------------------------------------
+        # 2) CAS login form
+        # ------------------------------------------------------------
         page.locator("form#log_in_form").wait_for(timeout=20_000)
 
-        # Debug: capture login page
-        page.screenshot(path="/tmp/ebmud_login_page.png", full_page=True)
-
-        # -----------------------------------------------------
-        # 2) Fill credentials (CORRECT selectors)
-        # -----------------------------------------------------
         page.fill("#username", EBMUD_USERNAME)
         page.fill("#upassword", EBMUD_PASSWORD)
 
-        # Submit form
         page.click("form#log_in_form button[type='submit']")
 
-        # -----------------------------------------------------
-        # 3) Wait until we're authenticated on EBMUD
-        # -----------------------------------------------------
-        page.wait_for_load_state("networkidle", timeout=30_000)
-
-        # CAS success usually lands us on /customers/account
-        # We don't care exactly where — just that we're no longer on /cas/login
-        current_url = page.url
-        if "/cas/login" in current_url:
-            page.screenshot(
-                path="/tmp/ebmud_login_failed.png",
-                full_page=True,
+        # ------------------------------------------------------------
+        # 3) Wait for SAML landing
+        # ------------------------------------------------------------
+        try:
+            page.wait_for_url(
+                lambda url: "ebmudSaml/landing" in url,
+                timeout=30_000,
             )
-            raise RuntimeError("Login failed: still on CAS login page")
+        except TimeoutError:
+            page.screenshot(path="/tmp/ebmud_saml_timeout.png", full_page=True)
+            raise RuntimeError("Timed out waiting for SAML landing")
 
-        # Debug: confirm post-login state
-        page.screenshot(path="/tmp/ebmud_after_login.png", full_page=True)
-
-        # -----------------------------------------------------
-        # 4) NOW explicitly go to WaterSmart
-        # -----------------------------------------------------
-        response = page.goto(
-            WATERSMART_DOWNLOAD_URL,
-            wait_until="networkidle",
-        )
-
-        # -----------------------------------------------------
-        # 5) Download CSV
-        # -----------------------------------------------------
-        response = page.goto(
-            WATERSMART_DOWNLOAD_URL,
-            wait_until="networkidle",
-        )
-
-        if not response or response.status != 200:
-            page.screenshot(
-                path="/tmp/ebmud_download_failed.png",
-                full_page=True,
+        # ------------------------------------------------------------
+        # 4) Wait for real WaterSmart app
+        # ------------------------------------------------------------
+        try:
+            page.wait_for_url(
+                lambda url: "trackUsage" in url and "watersmart.com" in url,
+                timeout=30_000,
             )
-            raise RuntimeError(
-                f"CSV download failed (status={response.status if response else 'none'})"
-            )
+        except TimeoutError:
+            page.screenshot(path="/tmp/ebmud_trackusage_timeout.png", full_page=True)
+            raise RuntimeError("Timed out waiting for WaterSmart app")
 
-        csv_text = response.text()
+        # ------------------------------------------------------------
+        # 5) Go to download page (authenticated)
+        # ------------------------------------------------------------
+        page.goto(DOWNLOAD_PAGE_URL, wait_until="networkidle")
+
+        # ------------------------------------------------------------
+        # 6) Trigger CSV download and capture response
+        # ------------------------------------------------------------
+        with page.expect_download(timeout=30_000) as download_info:
+            page.locator("a[href*='Download']").first.click()
+
+        download = download_info.value
+        csv_path = "/tmp/ebmud_water_usage.csv"
+        download.save_as(csv_path)
+
+        with open(csv_path, "r", encoding="utf-8") as f:
+            csv_text = f.read()
 
         browser.close()
         return csv_text
 
 
-# ---------------------------------------------------------
+# -------------------------------------------------------------------
 # Flask route
-# ---------------------------------------------------------
+# -------------------------------------------------------------------
 @app.route("/water/daily")
 def daily_water():
     try:
@@ -141,9 +120,9 @@ def daily_water():
         ), 500
 
 
-# ---------------------------------------------------------
+# -------------------------------------------------------------------
 # Entrypoint
-# ---------------------------------------------------------
+# -------------------------------------------------------------------
 if __name__ == "__main__":
     app.run(
         host="127.0.0.1",
