@@ -2,6 +2,9 @@
 import os
 from flask import Flask, Response, jsonify
 from playwright.sync_api import sync_playwright
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # -------------------------------------------------------------------
 # Environment variables (required)
