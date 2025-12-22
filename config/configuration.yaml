@@ -81,6 +81,7 @@ template:
   - sensor:
       - name: "EBMUD Customer GPD"
         unit_of_measurement: "gpd"
+        state_class: measurement
         state: >
           {{ state_attr('sensor.ebmud_raw_water_data', 'Customer GPD') }}
 
