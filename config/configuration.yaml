@@ -61,14 +61,38 @@ logger:
     homeassistant.components.simplisafe: info
     homeassistant.components.alexa_media: info
 
+
+# --------------------------------------------------
+# REST sensor (single fetch)
+# --------------------------------------------------
 sensor:
   - platform: rest
-    name: EBMUD Water CSV
-    resource: http://127.0.0.1:8081/water/daily
-    scan_interval: 3600
+    name: "EBMUD Raw Water Data"
+    resource: "http://127.0.0.1:8081/water/latest"
+    scan_interval: 86400
+    value_template: "{{ value_json['Reading Date'] }}"
+    json_attributes:
+      - "Customer GPD"
+      - "WaterScore"
+      - "Reading Date"
+
 
 template:
   - sensor:
+      - name: "EBMUD Customer GPD"
+        unit_of_measurement: "gpd"
+        state: >
+          {{ state_attr('sensor.ebmud_raw_water_data', 'Customer GPD') }}
+
+      - name: "EBMUD Water Score"
+        state: >
+          {{ state_attr('sensor.ebmud_raw_water_data', 'WaterScore') }}
+
+      - name: "EBMUD Reading Date"
+        state: >
+          {{ state_attr('sensor.ebmud_raw_water_data', 'Reading Date') }}
+
+      # Existing PG&E sensors (unchanged)
       - name: "PG&E Electricity Energy"
         unique_id: pge_electricity_energy
         unit_of_measurement: "kWh"
@@ -76,6 +100,7 @@ template:
         state_class: total_increasing
         state: >
           {{ states('sensor.opower_pge_elec_2889422103_consumption') | float(0) }}
+
       - name: "PG&E Gas Energy"
         unique_id: pge_gas_energy
         unit_of_measurement: "CCF"
