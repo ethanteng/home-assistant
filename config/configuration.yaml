@@ -61,6 +61,12 @@ logger:
     homeassistant.components.simplisafe: info
     homeassistant.components.alexa_media: info
 
+sensor:
+  - platform: rest
+    name: EBMUD Water CSV
+    resource: http://127.0.0.1:8081/water/daily
+    scan_interval: 3600
+
 template:
   - sensor:
       - name: "PG&E Electricity Energy"

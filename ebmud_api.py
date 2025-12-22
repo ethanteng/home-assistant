@@ -128,6 +128,21 @@ def daily_water():
         ), 500
 
 
+@app.route("/water/latest")
+def latest_water():
+    CACHE_PATH = "/tmp/ebmud_cache.csv"
+
+    if not os.path.exists(CACHE_PATH):
+        return jsonify({"error": "cache missing"}), 500
+
+    with open(CACHE_PATH) as f:
+        reader = csv.DictReader(f)
+        rows = list(reader)
+
+    latest = rows[0]  # most recent reading
+    return jsonify(latest)
+
+
 # -------------------------------------------------------------------
 # Fetch and cache EBMUD CSV
 # -------------------------------------------------------------------
