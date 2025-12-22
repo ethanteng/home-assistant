@@ -25,14 +25,15 @@ def fetch_csv_via_browser():
         # --- Login ---
         page.goto("https://www.ebmud.com/customer-login", wait_until="domcontentloaded")
 
-        page.locator('input[name="email"]').wait_for(state="visible", timeout=15_000)
-        page.locator('input[name="email"]').fill(EBMUD_USERNAME)
-        page.locator('input[name="password"]').fill(EBMUD_PASSWORD)
+        page.locator("#username").wait_for(state="visible", timeout=15_000)
+        page.locator("#username").fill(EBMUD_USERNAME)
+
+        page.locator("#upassword").fill(EBMUD_PASSWORD)
 
         page.locator('button[type="submit"]').click()
 
-        # Wait for auth to settle (cookie + redirect)
-        page.wait_for_load_state("load")
+        # Let CAS + redirects finish
+        page.wait_for_load_state("networkidle")
 
         # --- Fetch CSV directly ---
         response = page.goto(DOWNLOAD_URL, wait_until="domcontentloaded")
