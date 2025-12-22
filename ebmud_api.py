@@ -23,7 +23,13 @@ def fetch_csv_via_browser():
         page = context.new_page()
 
         # --- Login ---
-        page.goto("https://www.ebmud.com/customer-login", wait_until="domcontentloaded")
+        page.goto(
+            "https://www.ebmud.com/customer-login",
+            wait_until="domcontentloaded"
+        )
+
+        # DEBUG
+        page.screenshot(path="/tmp/ebmud_login_debug.png", full_page=True)
 
         page.locator("#username").wait_for(state="visible", timeout=15_000)
         page.locator("#username").fill(EBMUD_USERNAME)
@@ -32,7 +38,6 @@ def fetch_csv_via_browser():
 
         page.locator('button[type="submit"]').click()
 
-        # Let CAS + redirects finish
         page.wait_for_load_state("networkidle")
 
         # --- Fetch CSV directly ---
