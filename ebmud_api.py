@@ -70,25 +70,33 @@ def fetch_csv_via_browser() -> str:
         page.click("form#log_in_form button[type='submit']")
 
         # -----------------------------------------------------
-        # 3) Wait for CAS → SAML → WaterSmart redirect chain
+        # 3) Wait until we're authenticated on EBMUD
         # -----------------------------------------------------
-        try:
-            page.wait_for_url(
-                lambda url: "watersmart.com" in url,
-                timeout=60_000,
-            )
-        except PlaywrightTimeout:
+        page.wait_for_load_state("networkidle", timeout=30_000)
+
+        # CAS success usually lands us on /customers/account
+        # We don't care exactly where — just that we're no longer on /cas/login
+        current_url = page.url
+        if "/cas/login" in current_url:
             page.screenshot(
-                path="/tmp/ebmud_login_redirect_timeout.png",
+                path="/tmp/ebmud_login_failed.png",
                 full_page=True,
             )
-            raise RuntimeError("Timed out waiting for WaterSmart redirect")
+            raise RuntimeError("Login failed: still on CAS login page")
 
-        # Debug: post-login landing
+        # Debug: confirm post-login state
         page.screenshot(path="/tmp/ebmud_after_login.png", full_page=True)
 
         # -----------------------------------------------------
-        # 4) Download CSV
+        # 4) NOW explicitly go to WaterSmart
+        # -----------------------------------------------------
+        response = page.goto(
+            WATERSMART_DOWNLOAD_URL,
+            wait_until="networkidle",
+        )
+
+        # -----------------------------------------------------
+        # 5) Download CSV
         # -----------------------------------------------------
         response = page.goto(
             WATERSMART_DOWNLOAD_URL,
