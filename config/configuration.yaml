@@ -112,21 +112,21 @@ template:
 
 
 mqtt:
-  - sensor:
-      - name: "SimpliSafe Front Door Motion"
-        state_topic: "simplisafe/camera/front_door/motion"
-        payload_on: "motion"
-        payload_off: "clear"
-        value_template: "{{ value_json.event }}"
-        json_attributes_topic: "simplisafe/camera/front_door/motion"
-        device_class: motion
-        off_delay: 30
+  binary_sensor:
+    - name: "SimpliSafe Front Door Motion"
+      unique_id: simplisafe_front_door_motion
+      state_topic: "simplisafe/camera/front_door/motion"
+      value_template: "{{ value_json.event }}"
+      payload_on: "motion"
+      device_class: motion
+      off_delay: 30
+      json_attributes_topic: "simplisafe/camera/front_door/motion"
 
-      - name: "SimpliSafe Back Yard Motion"
-        state_topic: "simplisafe/camera/back_yard/motion"
-        payload_on: "motion"
-        payload_off: "clear"
-        value_template: "{{ value_json.event }}"
-        json_attributes_topic: "simplisafe/camera/front_door/motion"
-        device_class: motion
-        off_delay: 30
+    - name: "SimpliSafe Back Yard Motion"
+      unique_id: simplisafe_back_yard_motion
+      state_topic: "simplisafe/camera/back_yard/motion"
+      value_template: "{{ value_json.event }}"
+      payload_on: "motion"
+      device_class: motion
+      off_delay: 30
+      json_attributes_topic: "simplisafe/camera/back_yard/motion"
