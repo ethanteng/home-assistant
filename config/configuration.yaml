@@ -110,6 +110,25 @@ template:
         state: >
           {{ states('sensor.opower_pge_gas_2886724588_consumption') | float(0) }}
 
+  - sensor:
+      - name: "Front Door Last Motion Image"
+        state: >
+          {{ state_attr('binary_sensor.simplisafe_front_door_motion', 'ts') }}
+        attributes:
+          image_url: >
+            {{ state_attr('binary_sensor.simplisafe_front_door_motion', 'image_url') }}
+          clip_url: >
+            {{ state_attr('binary_sensor.simplisafe_front_door_motion', 'clip_url') }}
+
+      - name: "Back Yard Last Motion Image"
+        state: >
+          {{ state_attr('binary_sensor.simplisafe_back_yard_motion', 'ts') }}
+        attributes:
+          image_url: >
+            {{ state_attr('binary_sensor.simplisafe_back_yard_motion', 'image_url') }}
+          clip_url: >
+            {{ state_attr('binary_sensor.simplisafe_back_yard_motion', 'clip_url') }}
+
 
 mqtt:
   binary_sensor:
