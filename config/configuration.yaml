@@ -110,25 +110,6 @@ template:
         state: >
           {{ states('sensor.opower_pge_gas_2886724588_consumption') | float(0) }}
 
-  - sensor:
-      - name: "Front Door Last Motion Image"
-        state: >
-          {{ state_attr('binary_sensor.simplisafe_front_door_motion', 'ts') }}
-        attributes:
-          image_url: >
-            {{ state_attr('binary_sensor.simplisafe_front_door_motion', 'image_url') }}
-          clip_url: >
-            {{ state_attr('binary_sensor.simplisafe_front_door_motion', 'clip_url') }}
-
-      - name: "Back Yard Last Motion Image"
-        state: >
-          {{ state_attr('binary_sensor.simplisafe_back_yard_motion', 'ts') }}
-        attributes:
-          image_url: >
-            {{ state_attr('binary_sensor.simplisafe_back_yard_motion', 'image_url') }}
-          clip_url: >
-            {{ state_attr('binary_sensor.simplisafe_back_yard_motion', 'clip_url') }}
-
 
 mqtt:
   binary_sensor:
@@ -157,3 +138,36 @@ mqtt:
       device_class: motion
       off_delay: 30
       json_attributes_topic: "simplisafe/camera/back_yard/motion"
+
+  camera:
+    - name: "SimpliSafe Front Door Snapshot"
+      unique_id: simplisafe_front_door_snapshot
+      topic: "simplisafe/camera/front_door/motion"
+      image_topic: "simplisafe/camera/front_door/motion"
+      image_template: >
+        {{ value_json.image_url }}
+
+    - name: "SimpliSafe Back Yard Snapshot"
+      unique_id: simplisafe_back_yard_snapshot
+      topic: "simplisafe/camera/back_yard/motion"
+      image_topic: "simplisafe/camera/back_yard/motion"
+      image_template: >
+        {{ value_json.image_url }}
+
+
+button:
+  - platform: template
+    name: "Front Door – Play Last Clip"
+    icon: mdi:play-circle
+    press:
+      action: url
+      url_path: >
+        {{ state_attr('binary_sensor.simplisafe_front_door_motion', 'clip_url') }}
+
+  - platform: template
+    name: "Back Yard – Play Last Clip"
+    icon: mdi:play-circle
+    press:
+      action: url
+      url_path: >
+        {{ state_attr('binary_sensor.simplisafe_back_yard_motion', 'clip_url') }}
