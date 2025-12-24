@@ -116,6 +116,8 @@ template:
         icon: mdi:play-circle
         press:
           service: browser_mod.navigate
+          target:
+            device_id: 9b2bf6b4694ac69c35b0f26fae06da7b
           data:
             url: "{{ states('sensor.front_door_last_clip_url') }}"
 
@@ -124,6 +126,8 @@ template:
         icon: mdi:play-circle
         press:
           service: browser_mod.navigate
+          target:
+            device_id: 9b2bf6b4694ac69c35b0f26fae06da7b
           data:
             url: "{{ states('sensor.back_yard_last_clip_url') }}"
 
