@@ -109,3 +109,12 @@ template:
         state_class: total_increasing
         state: >
           {{ states('sensor.opower_pge_gas_2886724588_consumption') | float(0) }}
+
+
+mqtt:
+  sensor:
+    - name: "SimpliSafe Front Door Motion"
+      state_topic: "simplisafe/camera/front_door/motion"
+      value_template: "{{ value_json.event }}"
+      json_attributes_topic: "simplisafe/camera/front_door/motion"
+      device_class: motion
