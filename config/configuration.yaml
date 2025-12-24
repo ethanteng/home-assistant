@@ -110,6 +110,23 @@ template:
         state: >
           {{ states('sensor.opower_pge_gas_2886724588_consumption') | float(0) }}
 
+  - button:
+      - name: "Front Door – Play Last Clip"
+        unique_id: front_door_play_last_clip
+        icon: mdi:play-circle
+        press:
+          service: browser_mod.open
+          data:
+            url: "{{ states('sensor.front_door_last_clip_url') }}"
+
+      - name: "Back Yard – Play Last Clip"
+        unique_id: back_yard_play_last_clip
+        icon: mdi:play-circle
+        press:
+          service: browser_mod.open
+          data:
+            url: "{{ states('sensor.back_yard_last_clip_url') }}"
+
 
 mqtt:
   binary_sensor:
@@ -138,23 +155,3 @@ mqtt:
       device_class: motion
       off_delay: 30
       json_attributes_topic: "simplisafe/camera/back_yard/motion"
-
-
-button:
-  - platform: template
-    name: "Front Door – Play Last Clip"
-    unique_id: front_door_play_last_clip
-    icon: mdi:play-circle
-    press:
-      service: browser_mod.open
-      data:
-        url: "{{ states('sensor.front_door_last_clip_url') }}"
-
-  - platform: template
-    name: "Back Yard – Play Last Clip"
-    unique_id: back_yard_play_last_clip
-    icon: mdi:play-circle
-    press:
-      service: browser_mod.open
-      data:
-        url: "{{ states('sensor.back_yard_last_clip_url') }}"
