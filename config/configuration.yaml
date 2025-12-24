@@ -195,7 +195,7 @@ browser_mod:
 
 geo_location:
   - platform: usgs_earthquakes_feed
-    feed_type: "past_day_all"
+    feed_type: "past_day_all_earthquakes"
     scan_interval: 300
 
 
