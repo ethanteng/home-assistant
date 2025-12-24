@@ -110,6 +110,21 @@ template:
         state: >
           {{ states('sensor.opower_pge_gas_2886724588_consumption') | float(0) }}
 
+  - binary_sensor:
+      - name: "Earthquake Likely Felt"
+        state: >
+          {% set min_mag = 3.0 %}
+          {% set max_km = 80 %}
+          {% for e in states.geo_location %}
+            {% if e.attributes.magnitude is not none
+               and e.attributes.distance is not none
+               and e.attributes.magnitude >= min_mag
+               and e.attributes.distance <= max_km %}
+              true
+            {% endif %}
+          {% endfor %}
+          false
+
   - button:
       - name: "Front Door – Play Last Clip"
         unique_id: front_door_play_last_clip
@@ -176,3 +191,17 @@ mqtt:
 
 
 browser_mod:
+
+
+geo_location:
+  - platform: usgs_earthquakes_feed
+    feed_type: "past_day_all"
+    scan_interval: 300
+
+
+homeassistant:
+  latitude: !secret home_latitude
+  longitude: !secret home_longitude
+  elevation: !secret home_elevation
+  unit_system: imperial
+  time_zone: America/Los_Angeles
