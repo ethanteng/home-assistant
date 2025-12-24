@@ -117,7 +117,11 @@ mqtt:
       unique_id: simplisafe_front_door_motion
       state_topic: "simplisafe/camera/front_door/motion"
       value_template: >
-        {{ value_json.event == 'motion' if value_json is defined else false }}
+        {% if value_json is defined and value_json.event == 'motion' %}
+          ON
+        {% else %}
+          OFF
+        {% endif %}
       device_class: motion
       off_delay: 30
       json_attributes_topic: "simplisafe/camera/front_door/motion"
@@ -126,7 +130,11 @@ mqtt:
       unique_id: simplisafe_back_yard_motion
       state_topic: "simplisafe/camera/back_yard/motion"
       value_template: >
-        {{ value_json.event == 'motion' if value_json is defined else false }}
+        {% if value_json is defined and value_json.event == 'motion' %}
+          ON
+        {% else %}
+          OFF
+        {% endif %}
       device_class: motion
       off_delay: 30
       json_attributes_topic: "simplisafe/camera/back_yard/motion"
