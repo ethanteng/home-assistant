@@ -155,3 +155,6 @@ mqtt:
       device_class: motion
       off_delay: 30
       json_attributes_topic: "simplisafe/camera/back_yard/motion"
+
+
+browser_mod:
