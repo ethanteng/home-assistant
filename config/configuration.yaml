@@ -110,6 +110,17 @@ template:
         state: >
           {{ states('sensor.opower_pge_gas_2886724588_consumption') | float(0) }}
 
+      - name: "Front Door Last Clip URL"
+        unique_id: front_door_last_clip_url
+        state: >
+          {{ state_attr('binary_sensor.simplisafe_front_door_motion', 'clip_url') }}
+
+      - name: "Back Yard Last Clip URL"
+        unique_id: back_yard_last_clip_url
+        state: >
+          {{ state_attr('binary_sensor.simplisafe_back_yard_motion', 'clip_url') }}
+
+
   - button:
       - name: "Front Door – Play Last Clip"
         unique_id: front_door_play_last_clip
