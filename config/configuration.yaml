@@ -117,7 +117,7 @@ template:
         press:
           service: browser_mod.popup
           target:
-            device_id: THIS
+            device_id: ebdbe6ff_fc8bbac2
           data:
             title: Front Door – Last Clip
             dismissable: true
@@ -134,7 +134,7 @@ template:
         press:
           service: browser_mod.popup
           target:
-            device_id: THIS
+            device_id: ebdbe6ff_fc8bbac2
           data:
             title: Back Yard – Last Clip
             dismissable: true
