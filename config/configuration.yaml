@@ -123,7 +123,9 @@ template:
             dismissable: true
             content:
               type: iframe
-              url: "{{ states('sensor.front_door_last_clip_url') }}"
+              url: >
+                {% set url = states('sensor.front_door_last_clip_url') %}
+                {{ url if url not in ['unknown', 'unavailable', ''] else 'about:blank' }}
               aspect_ratio: 16x9
 
       - name: "Back Yard – Play Last Clip"
@@ -138,7 +140,9 @@ template:
             dismissable: true
             content:
               type: iframe
-              url: "{{ states('sensor.back_yard_last_clip_url') }}"
+              url: >
+                {% set url = states('sensor.back_yard_last_clip_url') %}
+                {{ url if url not in ['unknown', 'unavailable', ''] else 'about:blank' }}
               aspect_ratio: 16x9
 
 
