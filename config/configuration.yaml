@@ -201,5 +201,4 @@ homeassistant:
   latitude: !secret home_latitude
   longitude: !secret home_longitude
   elevation: !secret home_elevation
-  unit_system: US customary
   time_zone: America/Los_Angeles
