@@ -131,10 +131,9 @@ template:
         icon: mdi:play-circle
         press:
           service: browser_mod.popup
-          target:
-            device_id: THIS
           data:
             title: Front Door – Last Clip
+            browser_id: THIS
             dismissable: true
             content:
               type: iframe
@@ -148,10 +147,9 @@ template:
         icon: mdi:play-circle
         press:
           service: browser_mod.popup
-          target:
-            device_id: THIS
           data:
             title: Back Yard – Last Clip
+            browser_id: THIS
             dismissable: true
             content:
               type: iframe
@@ -203,5 +201,5 @@ homeassistant:
   latitude: !secret home_latitude
   longitude: !secret home_longitude
   elevation: !secret home_elevation
-  unit_system: imperial
+  unit_system: US customary
   time_zone: America/Los_Angeles
