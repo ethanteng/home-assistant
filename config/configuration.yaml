@@ -142,6 +142,38 @@ template:
                 {{ url if url not in ['unknown', 'unavailable', ''] else 'about:blank' }}
               aspect_ratio: 16x9
 
+      - name: "Front Door – Play Last Clip (iPad)"
+        unique_id: front_door_play_last_clip_ipad
+        icon: mdi:play-circle
+        press:
+          service: browser_mod.popup
+          data:
+            user_id: 7123bdf365ec429d9bd73090428b3be7
+            title: Front Door – Last Clip
+            dismissable: true
+            content:
+              type: iframe
+              url: >
+                {% set url = states('sensor.front_door_last_clip_url') %}
+                {{ url if url not in ['unknown', 'unavailable', ''] else 'about:blank' }}
+              aspect_ratio: 16x9
+
+      - name: "Front Door – Play Last Clip (iPhone)"
+        unique_id: front_door_play_last_clip_iphone
+        icon: mdi:play-circle
+        press:
+          service: browser_mod.popup
+          data:
+            user_id: 64c8ea1aaffc45ddaab49a2cbc770547
+            title: Front Door – Last Clip
+            dismissable: true
+            content:
+              type: iframe
+              url: >
+                {% set url = states('sensor.front_door_last_clip_url') %}
+                {{ url if url not in ['unknown', 'unavailable', ''] else 'about:blank' }}
+              aspect_ratio: 16x9
+
       - name: "Back Yard – Play Last Clip"
         unique_id: back_yard_play_last_clip
         icon: mdi:play-circle
@@ -149,6 +181,38 @@ template:
           service: browser_mod.popup
           data:
             user_id: 313054bae82244359d04574a3f416117
+            title: Back Yard – Last Clip
+            dismissable: true
+            content:
+              type: iframe
+              url: >
+                {% set url = states('sensor.back_yard_last_clip_url') %}
+                {{ url if url not in ['unknown', 'unavailable', ''] else 'about:blank' }}
+              aspect_ratio: 16x9
+
+      - name: "Back Yard – Play Last Clip (iPad)"
+        unique_id: back_yard_play_last_clip_ipad
+        icon: mdi:play-circle
+        press:
+          service: browser_mod.popup
+          data:
+            user_id: 7123bdf365ec429d9bd73090428b3be7
+            title: Back Yard – Last Clip
+            dismissable: true
+            content:
+              type: iframe
+              url: >
+                {% set url = states('sensor.back_yard_last_clip_url') %}
+                {{ url if url not in ['unknown', 'unavailable', ''] else 'about:blank' }}
+              aspect_ratio: 16x9
+
+      - name: "Back Yard – Play Last Clip (iPhone)"
+        unique_id: back_yard_play_last_clip_iphone
+        icon: mdi:play-circle
+        press:
+          service: browser_mod.popup
+          data:
+            user_id: 64c8ea1aaffc45ddaab49a2cbc770547
             title: Back Yard – Last Clip
             dismissable: true
             content:
